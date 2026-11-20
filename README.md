@@ -4,6 +4,8 @@
 
 **المستودع:** https://github.com/MrMina20/Mina
 
+**الموقع (GitHub Pages):** https://mrmina20.github.io/Mina/
+
 ## التشغيل
 
 افتح `index.html` بالمتصفح، أو شغّل سيرفر محلي: `python3 -m http.server 8080`.
