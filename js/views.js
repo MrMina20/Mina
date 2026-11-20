@@ -309,7 +309,7 @@
   const D = {};
 
   D.contracts = (c) => {
-    if ((c.insts || []).some((i) => !Array.isArray(i.pays))) { c.insts.forEach(O.normInst); S.put('contracts', c); }
+    if ((c.insts || []).some((i) => !Array.isArray(i.pays) || i.pays.some((p) => !p.no))) { c.insts.forEach(O.normInst); S.put('contracts', c); }
     const pays = [];
     (c.insts || []).forEach((i) => i.pays.forEach((p) => pays.push({ i, p })));
     pays.sort((a, b) => String(a.p.date).localeCompare(String(b.p.date)));
@@ -321,6 +321,7 @@
       secs: [
         { h: 'بيانات العميل والعقد', html: info([['الوحدة', u ? O.unitLabel(u, true) : ''], ['التليفون', c.phone], ['تليفون آخر', c.phone2], ['الرقم القومي', c.nid], ['الوظيفة', c.job], ['العنوان', c.address], ['تاريخ العقد', c.date && fdate(c.date)], ['حالة العقد', c.status]]) },
         { h: `كل التحصيلات (${pays.length})`, html: tbl(['التاريخ', 'البند', 'المبلغ', 'إجمالي المحصل', 'ملاحظات', ''], pays.map(({ i, p }) => { run += p.amount; return [fdate(p.date), i.label, money(p.amount, 'g'), { h: fmt(run), c: 'num' }, p.note || '', { h: `<button type="button" class="lnk del" data-delpay="${i.id}|${p.id}">حذف</button>`, c: 'ra' }]; }), 'لسه ما اتحصّلش أي مبلغ. اضغط «تحصيل قسط» لتسجيل أول دفعة.') },
+        { h: 'إيصالات الاستلام النقدية', html: tbl(['رقم الإيصال', 'التاريخ', 'عن', 'المبلغ', ''], pays.slice().reverse().map(({ i, p }) => [{ h: '#' + p.no, c: 'num' }, fdate(p.date), i.label === 'المقدم' ? 'المقدم' : i.label, money(p.amount, 'g'), { h: `<a class="lk" href="#/receipt/${c.id}/${p.id}">فتح وطباعة</a>`, c: 'ra' }]), 'الإيصالات بتتعمل تلقائي مع كل تحصيل.') },
         { h: 'جدول الأقساط', html: tbl(['البند', 'الاستحقاق', 'المبلغ', 'المحصل', 'المتبقي', 'الحالة'], (c.insts || []).map((i) => [i.label, fdate(i.due), money(i.amount), money(i.paid, 'g'), money(O.instRem(i), 'o'), { h: badge(O.instState(i)) }]), 'لسه مفيش جدول أقساط.') },
         filesSec(c.files), noteSec(c.note)
       ],
@@ -443,6 +444,47 @@
       acts: [{ l: 'وارد +', cls: 'primary', fn: () => V.stockForm('in', { item: r.name, unit: r.unit }) }, { l: 'صادر −', fn: () => V.stockForm('out', { item: r.name, unit: r.unit }) }]
     };
   };
+
+  /* ================= إيصال استلام نقدية (مقدم / قسط) ================= */
+  function receiptPage(cid, pid) {
+    const c = S.get('contracts', cid);
+    if (!c) { go('#/m/contracts'); return; }
+    if ((c.insts || []).some((i) => !Array.isArray(i.pays) || i.pays.some((p) => !p.no))) { c.insts.forEach(O.normInst); S.put('contracts', c); }
+    let inst = null, pay = null;
+    const all = [];
+    c.insts.forEach((i) => i.pays.forEach((p) => { all.push(p); if (p.id === pid) { inst = i; pay = p; } }));
+    if (!pay) { go('#/d/contracts/' + cid); return; }
+    const m = S.meta(), u = S.get('properties', c.unit), cc = cur();
+    const total = +c.total || sum(c.insts, (i) => i.amount);
+    const upto = sum(all.filter((p) => String(p.date) < String(pay.date) || (p.date === pay.date && p.no <= pay.no)), (p) => p.amount);
+    const rem = Math.max(0, total - upto), down = inst.label === 'المقدم';
+    const cents = Math.round((pay.amount % 1) * 100);
+    const words = O.tafqeet(pay.amount) + ' ' + cc + (cents ? ' و' + O.tafqeet(cents) + ' قرش' : '') + ' فقط لا غير';
+    const row = (l, v) => `<div class="rr2"><span>${esc(l)}</span><b>${v}</b></div>`;
+    root().innerHTML = `${top('إيصال استلام نقدية', { back: '#/d/contracts/' + cid, actions: `<button class="btn" id="wa">إرسال واتساب</button><button class="btn primary" id="pr">طباعة</button>` })}
+    <main class="wrap inner"><article class="rcpt" id="rcpt">
+      <header><div><strong>${esc(m.company || 'عمران')}</strong><small>إدارة العقارات والمقاولات</small></div><div class="rno">رقم الإيصال<b>${pay.no}</b></div></header>
+      <h2>إيصال استلام نقدية — ${down ? 'مقدم حجز' : 'قسط'}</h2>
+      ${row('التاريخ', fdate(pay.date))}
+      ${row('استلمنا من السيد / السيدة', esc(c.name))}
+      <div class="amtbox"><b dir="ltr">${fmt(pay.amount)}</b><span>${esc(cc)}</span></div>
+      ${row('مبلغ وقدره (كتابةً)', esc(words))}
+      ${row('وذلك عن', esc(inst.label) + (u ? ' — ' + esc(O.unitLabel(u, true)) : ''))}
+      ${pay.note ? row('ملاحظات', esc(pay.note)) : ''}
+      <div class="rsum"><span>إجمالي العقد <b>${fmt(total)}</b></span><span>إجمالي المحصل حتى تاريخه <b>${fmt(upto)}</b></span><span>المتبقي على العميل <b>${fmt(rem)}</b></span></div>
+      <footer><div><small>المستلم</small><i></i></div><div><small>العميل</small><i></i></div><div class="stamp"><small>الختم</small></div></footer>
+    </article><p class="mut noprint rhint">الإيصال بيتطبع على ورقة A4 أو A5. لو اخترت «حفظ كـ PDF» من نافذة الطباعة هتقدر تبعته للعميل.</p></main>`;
+    root().onclick = (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.id === 'pr') w.print();
+      if (b.id === 'wa') {
+        const link = H.waLink(c.phone, `إيصال استلام نقدية رقم ${pay.no}\nاستلمنا من أ/ ${c.name} مبلغ ${fmt(pay.amount)} ${cc} (${words})\nعن: ${inst.label}${u ? ' - ' + O.unitLabel(u, true) : ''}\nبتاريخ ${fdate(pay.date)}\nالمتبقي على حضرتك: ${fmt(rem)} ${cc}\n${m.company || 'عمران'}`);
+        if (!link) { toast('ضيف رقم تليفون العميل الأول', 'warn'); return; }
+        w.open(link, '_blank');
+      }
+    };
+  }
 
   function detailPage(key, id) {
     let d = null;
@@ -683,6 +725,7 @@
       if (!p[0]) homePage();
       else if (p[0] === 'm' && M[p[1]]) listPage(p[1]);
       else if (p[0] === 'd' && (M[p[1]] || p[1] === 'stock')) detailPage(p[1], p.slice(2).join('/'));
+      else if (p[0] === 'receipt') receiptPage(p[1], p[2]);
       else if (p[0] === 'contract') contractPage(p[1] || 'new', p[2]);
       else if (p[0] === 'stock') stockPage();
       else if (p[0] === 'reports') reportsPage();

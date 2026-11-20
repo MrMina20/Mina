@@ -60,10 +60,28 @@
   /* ---------- العقود والأقساط ---------- */
   const instRem = (i) => Math.max(0, (+i.amount || 0) - (+i.paid || 0));
   const byDue = (a, b) => String(a.due || '9999').localeCompare(String(b.due || '9999'));
+  // تفقيط المبلغ بالعربي (للإيصالات)
+  const AR1 = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة', 'عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
+  const AR10 = ['', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
+  const AR100 = ['', 'مائة', 'مائتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
+  const below1000 = (n) => { const h = Math.floor(n / 100), r = n % 100, a = []; if (h) a.push(AR100[h]); if (r) { if (r < 20) a.push(AR1[r]); else { const u = r % 10, t = Math.floor(r / 10); a.push(u ? AR1[u] + ' و' + AR10[t] : AR10[t]); } } return a.join(' و'); };
+  function tafqeet(num) {
+    let n = Math.floor(Math.abs(+num) || 0), rest = n;
+    if (!n) return 'صفر';
+    const out = [];
+    [[1e9, 'مليار', 'ملياران', 'مليارات'], [1e6, 'مليون', 'مليونان', 'ملايين'], [1e3, 'ألف', 'ألفان', 'آلاف']].forEach(([v, s1, s2, sp]) => {
+      const q = Math.floor(rest / v); rest %= v;
+      if (!q) return;
+      out.push(q === 1 ? s1 : q === 2 ? s2 : q <= 10 ? below1000(q) + ' ' + sp : below1000(q) + ' ' + s1);
+    });
+    if (rest) out.push(below1000(rest));
+    return out.join(' و');
+  }
   // كل قسط ليه دفعات (pays): كل دفعة بتاريخها ومبلغها وملاحظتها. المحصل = مجموع الدفعات.
+  const nextRc = () => { const n = (+S.meta().rc || 0) + 1; S.setMeta({ rc: n }); return n; };
   const normInst = (i) => {
     if (!Array.isArray(i.pays)) i.pays = (+i.paid > 0) ? [{ id: uid(), date: i.paidDate || today(), amount: +i.paid, note: '' }] : [];
-    i.pays.forEach((p) => { p.amount = +p.amount || 0; if (!p.id) p.id = uid(); });
+    i.pays.forEach((p) => { p.amount = +p.amount || 0; if (!p.id) p.id = uid(); if (!p.no) p.no = nextRc(); });
     i.paid = sum(i.pays, (p) => p.amount);
     i.paidDate = i.pays.length ? i.pays.map((p) => p.date || '').sort().pop() : '';
     return i;
@@ -392,5 +410,5 @@
     mk({ name: 'م. كريم عادل', nid: '27811011234569', phone: '01055667788', address: 'المعادي - القاهرة', job: 'مقاول', unit: u4, date: d(-300), total: 3100000 }, 600000, 5, d(-250), d(0));
   }
 
-  Object.assign(O, { M, TONE, ROLES, UNITS, MATCATS, IN_CATS, OUT_CATS, FREQ, unitLabel, refName, refOpts, balance, memberPaid, supplierPaid, supplierBought, projectCost, projectIncome, stockMap, instRem, instState, normInst, addPay, byDue, ctPaid, ctRem, unpaid, nextInst, ctState, overdueCount, genInsts, saveContract, deleteContract, contractOfUnit, alerts, loadDemo, alertDays });
+  Object.assign(O, { M, TONE, ROLES, UNITS, MATCATS, IN_CATS, OUT_CATS, FREQ, unitLabel, refName, refOpts, balance, memberPaid, supplierPaid, supplierBought, projectCost, projectIncome, stockMap, instRem, instState, tafqeet, normInst, addPay, byDue, ctPaid, ctRem, unpaid, nextInst, ctState, overdueCount, genInsts, saveContract, deleteContract, contractOfUnit, alerts, loadDemo, alertDays });
 })(window);

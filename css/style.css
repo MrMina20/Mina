@@ -249,3 +249,21 @@ small.mut { font-size: 13px; }
 .tbl td.ra { text-align: left; white-space: nowrap; }
 .item { cursor: pointer; } .item:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .lnk.del { color: var(--red); }
+
+/* إيصال الاستلام النقدية: ورقة بيضاء دايماً (شاشة وطباعة) */
+.rcpt { max-width: 720px; margin: 0 auto 14px; background: #fff; color: #1a1a1a; border: 2px solid #1a1a1a; outline: 1px solid #1a1a1a; outline-offset: 4px; border-radius: 4px; padding: 26px 30px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.rcpt header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; }
+.rcpt header strong { display: block; font-size: 22px; } .rcpt header small { color: #555; }
+.rcpt .rno { text-align: center; font-size: 13px; color: #555; } .rcpt .rno b { display: block; font-size: 22px; color: #1a1a1a; border: 1.5px solid #1a1a1a; padding: 2px 14px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.rcpt h2 { text-align: center; font-size: 20px; margin: 16px 0 10px; }
+.rcpt .rr2 { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px dotted #888; align-items: baseline; }
+.rcpt .rr2 span { color: #555; min-width: 170px; font-size: 14px; } .rcpt .rr2 b { font-weight: 600; flex: 1; }
+.rcpt .amtbox { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin: 14px auto; padding: 10px 26px; border: 2px solid #1a1a1a; width: fit-content; background: #f2f2f2; }
+.rcpt .amtbox b { font-size: 32px; font-variant-numeric: tabular-nums; } .rcpt .amtbox span { font-size: 16px; }
+.rcpt .rsum { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 14px 0 6px; padding: 10px 12px; background: #f2f2f2; font-size: 14px; color: #444; } .rcpt .rsum b { color: #1a1a1a; margin-inline-start: 4px; font-variant-numeric: tabular-nums; }
+.rcpt footer { display: flex; gap: 24px; margin-top: 26px; align-items: flex-end; }
+.rcpt footer > div { flex: 1; text-align: center; } .rcpt footer small { color: #555; display: block; } .rcpt footer i { display: block; border-bottom: 1.5px solid #1a1a1a; height: 44px; }
+.rcpt .stamp { border: 1.5px dashed #888; height: 74px; display: flex; align-items: center; justify-content: center; flex: 0 0 110px; }
+.rhint { text-align: center; }
+@media (max-width: 600px) { .rcpt { padding: 18px 14px; } .rcpt .rr2 { flex-direction: column; gap: 2px; } .rcpt .rr2 span { min-width: 0; } .rcpt footer { flex-wrap: wrap; } }
+@media print { .rcpt { border-radius: 0; margin: 0 auto; max-width: none; } @page { margin: 12mm; } }
