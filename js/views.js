@@ -219,8 +219,8 @@
         <label class="fld"><span>سعر البيع الإجمالي</span><input id="c_total" inputmode="decimal"></label>
         <label class="fld"><span>حالة العقد</span><select id="c_status"><option>ساري</option><option>ملغي</option></select></label></div></section>
       <section class="panel pad"><h3>جدول الأقساط</h3>
-        <div class="gen"><label class="fld"><span>المقدم</span><input id="g_down" inputmode="decimal"></label><label class="fld"><span>عدد الأقساط</span><input id="g_n" inputmode="decimal"></label><label class="fld"><span>التكرار</span><select id="g_months">${O.FREQ.map((f) => `<option value="${f.v}">${f.l}</option>`).join('')}</select></label><label class="fld"><span>تاريخ أول قسط</span><input type="date" id="g_first"></label><button type="button" class="btn primary" id="gen">إنشاء الجدول</button></div>
-        <p class="mut hint">الباقي بعد المقدم بيتقسّم بالتساوي، وتقدر تعدّل أي قسط بعد كده أو تضيف دفعة مختلفة (زي دفعة استلام). الأقساط اللي اتحصّلت بتفضل زي ما هي.</p>
+        <div class="gen"><label class="fld"><span>المقدم</span><input id="g_down" inputmode="decimal"></label><label class="fld"><span>مدة التقسيط</span><div class="dur"><input id="g_n" inputmode="decimal" aria-label="المدة"><select id="g_unit" aria-label="الوحدة"><option value="y">سنة</option><option value="m">شهر</option></select></div></label><label class="fld"><span>دفع القسط كل</span><select id="g_months">${O.FREQ.map((f) => `<option value="${f.v}">${f.l}</option>`).join('')}</select></label><label class="fld"><span>تاريخ أول قسط</span><input type="date" id="g_first"></label><button type="button" class="btn primary" id="gen">إنشاء الجدول</button></div>
+        <p class="mut hint">اكتب مدة التقسيط بالسنين أو الشهور وكل كام شهر بتدفع، وعدد الأقساط بيتحسب لوحده (مثلاً 5 سنين وشهري = 60 قسط). الباقي بعد المقدم بيتقسّم بالتساوي، وتقدر تعدّل أي قسط بعد كده أو تضيف دفعة مختلفة (زي دفعة استلام). الأقساط اللي اتحصّلت بتفضل زي ما هي.</p>
         <div class="tblw"><table class="tbl insts"><thead><tr><th>البند</th><th>الاستحقاق</th><th>المبلغ</th><th>المحصل</th><th>الحالة</th><th></th></tr></thead><tbody id="ib"></tbody></table></div>
         <div id="isum" class="sumline"></div><button class="btn" id="addi" type="button">${ICON.plus}<span>إضافة قسط / دفعة</span></button></section>
       <section class="panel pad"><h3>العقد الورقي (PDF)</h3><div id="files"></div></section>
@@ -238,7 +238,7 @@
       $('#isum').innerHTML = `<span>مجموع الجدول: <b>${fmt(sch)}</b></span><span>المحصل: <b class="g">${fmt(paid)}</b></span><span>المتبقي: <b class="o">${fmt(sch - paid)}</b></span>${st.insts.length && Math.abs(diff) > 0.5 ? `<span class="warnt">فرق عن سعر البيع: ${fmt(diff)}</span>` : ''}`;
       $('#ctsum').innerHTML = chips([{ l: 'سعر البيع', v: tot }, { l: 'المحصل', v: paid, tone: 'green' }, { l: 'المتبقي', v: sch - paid, tone: sch - paid > 0 ? 'orange' : '' }, n ? { l: 'القسط القادم', s: fdate(n.due) + ' - ' + fmt(O.instRem(n)), tone: n.due < today() ? 'red' : '' } : { l: 'القسط القادم', s: st.insts.length ? 'مفيش (مكتمل)' : 'لسه ما اتحددش' }]);
     };
-    const draw = () => { $('#ib').innerHTML = st.insts.length ? st.insts.map(instRow).join('') : '<tr><td colspan="6" class="mut">لسه مفيش أقساط. حدد المقدم وعدد الأقساط واضغط «إنشاء الجدول»، أو ضيف قسط يدوي.</td></tr>'; sums(); };
+    const draw = () => { $('#ib').innerHTML = st.insts.length ? st.insts.map(instRow).join('') : '<tr><td colspan="6" class="mut">لسه مفيش أقساط. حدد المقدم ومدة التقسيط واضغط «إنشاء الجدول»، أو ضيف قسط يدوي.</td></tr>'; sums(); };
 
     function persist() {
       if (!String(st.name).trim()) { toast('اكتب اسم العميل', 'warn'); return false; }
@@ -269,10 +269,10 @@
       if (!b) return;
       const tr = b.closest('tr'), k = tr ? +tr.dataset.i : -1, i = st.insts[k];
       if (b.id === 'gen') {
-        const total = toNum(st.total), n = toNum($('#g_n').value), first = $('#g_first').value, down = toNum($('#g_down').value);
+        const total = toNum(st.total), dur = toNum($('#g_n').value), freq = +$('#g_months').value || 1, durM = Math.round($('#g_unit').value === 'y' ? dur * 12 : dur), n = durM > 0 ? Math.max(1, Math.round(durM / freq)) : 0, first = $('#g_first').value, down = toNum($('#g_down').value);
         if (!total) { toast('اكتب سعر البيع الأول', 'warn'); return; }
         if (n > 0 && !first) { toast('اختار تاريخ أول قسط', 'warn'); return; }
-        if (!n && !down) { toast('اكتب المقدم أو عدد الأقساط', 'warn'); return; }
+        if (!n && !down) { toast('اكتب المقدم أو مدة التقسيط', 'warn'); return; }
         const kept = st.insts.filter((x) => (+x.paid || 0) > 0);
         if (st.insts.length > kept.length && !(await confirmBox('الأقساط غير المحصلة هتتستبدل بجدول جديد. تكمل؟', 'استبدال'))) return;
         st.insts = O.genInsts({ total, down, downDate: st.date, n, months: +$('#g_months').value, first, kept });
