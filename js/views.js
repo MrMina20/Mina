@@ -11,13 +11,13 @@
 
   const top = (title, o) => {
     o = o || {};
-    return `<header class="topbar noprint"><a class="back" href="${o.back || '#/'}" aria-label="رجوع">${ICON.back}</a><h1>${esc(title)}</h1><div class="tacts">${o.actions || ''}</div></header>`;
+    return `<header class="topbar noprint"><a class="back ${(o.back || '#/') === '#/' ? 'hide-lg' : ''}" href="${o.back || '#/'}" aria-label="رجوع">${ICON.back}</a><h1>${esc(title)}</h1><div class="tacts">${o.actions || ''}</div></header>`;
   };
   const badge = (t) => (t ? `<span class="badge ${TONE[t] || 'gray'}">${esc(t)}</span>` : '');
   const showA = (a) => a && (a.s != null || (a.v != null && a.v !== '' && (+a.v !== 0 || a.always)));
   const cur = () => S.meta().currency;
   function chips(list) {
-    return `<div class="chips">${list.map((c) => `<div class="chip ${c.tone || ''}"><small>${esc(c.l)}</small><b>${c.s != null ? esc(c.s) : fmt(c.v)}${c.s == null ? ` <i>${esc(cur())}</i>` : ''}</b></div>`).join('')}</div>`;
+    return `<div class="chips">${list.map((c) => `<div class="chip ${c.tone || ''}"><small>${esc(c.l)}</small><b>${c.s != null ? esc(c.s) : `<span class="cn" data-count="${+c.v || 0}">${fmt(c.v)}</span>`}${c.s == null ? ` <i>${esc(cur())}</i>` : ''}</b></div>`).join('')}</div>`;
   }
   const optList = (opts) => (typeof opts === 'function' ? opts() : opts).map((o) => (typeof o === 'string' ? { v: o, l: o } : o));
   const getFields = (m, vals) => (typeof m.fields === 'function' ? m.fields(vals) : m.fields);
@@ -168,7 +168,7 @@
       const acts = (m.actions ? m.actions(it) : []).map((a, i) => (a.q ? `<button class="lnk" data-a="${i}">${esc(a.l)}</button>` : '')).join('');
       const wa = it.phone ? H.waLink(it.phone) : '';
       const dot = r.dot || (r.b && r.b[0] ? TONE[r.b[0]] || 'gray' : 'gray');
-      return `<article class="item" data-id="${it.id}" tabindex="0" role="link"><span class="dot ${dot}"></span><div class="ibody"><h3>${esc(r.t)}</h3><div class="meta">${(r.m || []).filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('')}</div>${r.p != null ? `<div class="bar" role="progressbar" aria-valuenow="${r.p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, r.p)}%"></i><em>${fmt(r.p)}%</em></div>` : ''}<div class="acts">${acts}${it.phone ? `<a class="lnk" href="tel:${esc(it.phone)}">اتصال</a>${wa ? `<a class="lnk" href="${wa}" target="_blank" rel="noopener">واتساب</a>` : ''}` : ''}</div></div><div class="iamts">${(r.b || []).map(badge).join('')}${(r.a || []).filter(showA).map((a) => `<div class="amt ${a.tone || ''}"><small>${esc(a.l)}</small><b>${a.s != null ? esc(a.s) : fmt(a.v)}${a.s == null ? ` <i>${esc(cur())}</i>` : ''}</b></div>`).join('')}</div></article>`;
+      return `<article class="item" data-id="${it.id}" tabindex="0" role="link"><span class="dot ${dot}"></span><div class="ibody"><h3>${esc(r.t)}</h3><div class="meta">${(r.m || []).filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('')}</div>${r.p != null ? `<div class="bar" role="progressbar" aria-valuenow="${r.p}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, r.p)}%"></i><em>${fmt(r.p)}%</em></div>` : ''}<div class="acts">${acts}${it.phone ? `<a class="lnk" href="tel:${esc(it.phone)}">اتصال</a>${wa ? `<a class="lnk" href="${wa}" target="_blank" rel="noopener">واتساب</a>` : ''}` : ''}</div></div><div class="iamts">${(r.b || []).map(badge).join('')}${(r.a || []).filter(showA).map((a) => `<div class="amt ${a.tone || ''}"><small>${esc(a.l)}</small><b>${a.s != null ? esc(a.s) : `<span class="cn" data-count="${+a.v || 0}">${fmt(a.v)}</span>`}${a.s == null ? ` <i>${esc(cur())}</i>` : ''}</b></div>`).join('')}</div></article>`;
     };
     const refresh = () => {
       let items = S.all(key).slice();
@@ -529,7 +529,7 @@
   function barsSVG(labels, a, b) {
     const W = 560, Hh = 220, pad = 28, max = Math.max(1, ...a, ...b), bw = 22, gap = (W - pad * 2) / labels.length;
     const y = (v) => Hh - 34 - (v / max) * (Hh - 60);
-    return `<svg viewBox="0 0 ${W} ${Hh}" class="chart" role="img" aria-label="الوارد والصادر خلال آخر ستة أشهر">${[0, 0.5, 1].map((k) => `<line x1="${pad}" x2="${W - pad}" y1="${y(max * k)}" y2="${y(max * k)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${W - pad + 4}" y="${y(max * k) + 4}" fill="var(--mut)" font-size="10">${k ? fmt(Math.round(max * k / 1000)) + 'k' : '0'}</text>`).join('')}${labels.map((l, i) => { const cx = W - pad - gap * (i + 0.5); return `<rect x="${cx - bw - 2}" y="${y(a[i])}" width="${bw}" height="${Hh - 34 - y(a[i])}" rx="4" fill="var(--green)"><title>وارد ${fmt(a[i])}</title></rect><rect x="${cx + 2}" y="${y(b[i])}" width="${bw}" height="${Hh - 34 - y(b[i])}" rx="4" fill="var(--orange)"><title>صادر ${fmt(b[i])}</title></rect><text x="${cx}" y="${Hh - 12}" text-anchor="middle" fill="var(--mut)" font-size="11">${l}</text>`; }).join('')}</svg>`;
+    return `<svg viewBox="0 0 ${W} ${Hh}" class="chart" role="img" aria-label="الوارد والصادر خلال آخر ستة أشهر">${[0, 0.5, 1].map((k) => `<line x1="${pad}" x2="${W - pad}" y1="${y(max * k)}" y2="${y(max * k)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${W - pad + 4}" y="${y(max * k) + 4}" fill="var(--mut)" font-size="10">${k ? fmt(Math.round(max * k / 1000)) + 'k' : '0'}</text>`).join('')}${labels.map((l, i) => { const cx = W - pad - gap * (i + 0.5); return `<rect x="${cx - bw - 2}" y="${y(a[i])}" width="${bw}" height="${Hh - 34 - y(a[i])}" rx="4" fill="var(--green)" style="--d:${i}"><title>وارد ${fmt(a[i])}</title></rect><rect x="${cx + 2}" y="${y(b[i])}" width="${bw}" height="${Hh - 34 - y(b[i])}" rx="4" fill="var(--orange)" style="--d:${i}"><title>صادر ${fmt(b[i])}</title></rect><text x="${cx}" y="${Hh - 12}" text-anchor="middle" fill="var(--mut)" font-size="11">${l}</text>`; }).join('')}</svg>`;
   }
   function hbars(items, color) {
     const max = Math.max(1, ...items.map((i) => i.v));
@@ -665,52 +665,125 @@
     };
   }
 
-  /* ================= الصفحة الرئيسية ================= */
-  const TILES = [
-    ['contracts', 'العملاء والعقود', '#/m/contracts', () => { const n = O.overdueCount(), c = S.all('contracts').filter((x) => x.status !== 'ملغي').length; return n ? { t: n + ' عميل متأخر في القسط', tone: 'red' } : { t: c ? c + ' عميل' : 'ابدأ بتسجيل عميل' }; }],
-    ['properties', 'الوحدات والعقارات', '#/m/properties', () => { const p = S.all('properties'); return { t: p.length ? p.filter((x) => x.status === 'متاحة').length + ' متاحة للبيع' : 'لسه مفيش وحدات' }; }],
-    ['projects', 'المشاريع', '#/m/projects', () => { const p = S.all('projects'); return { t: p.length ? p.filter((x) => ['تنفيذ', 'تشطيب'].includes(x.status)).length + ' قيد التنفيذ' : 'لسه مفيش مشاريع' }; }],
-    ['reports', 'التقارير', '#/reports', () => { const t = today(), n = sum(S.all('treasury').filter((x) => x.date === t), (x) => (x.type === 'in' ? x.amount : -x.amount)); return { t: 'النهارده: ' + (n > 0 ? '+' : '') + fmt(n) }; }],
-    ['treasury', 'الخزنة', '#/m/treasury', () => ({ t: 'الرصيد ' + fmt(O.balance()), tone: O.balance() < 0 ? 'red' : '' })],
-    ['stock', 'المخزن', '#/stock', () => { const l = Object.values(O.stockMap()), lw = l.filter((r) => r.min > 0 && r.qty <= r.min).length; return lw ? { t: lw + ' صنف ناقص', tone: 'red' } : { t: l.length ? l.length + ' صنف' : 'لسه فاضي' }; }],
-    ['team', 'المقاولين والمهندسين', '#/m/contractors', () => ({ t: S.all('contractors').length ? S.all('contractors').length + ' مسجل' : 'لسه مفيش' })],
-    ['suppliers', 'الموردين', '#/m/suppliers', () => ({ t: S.all('suppliers').length ? S.all('suppliers').length + ' مورد' : 'لسه مفيش' })]
-  ];
+  /* ================= الإطار: القائمة الجانبية + الحركة ================= */
+  const RM = () => w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const HOME_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 11l8-6.5L20 11v9H4z"/><path d="M3 11.5L12 4l9 7.5M5.5 10v10h13v-10M10 20v-5h4v5"/></svg>';
+  const NAV = [['home', 'الرئيسية', '#/'], ['contracts', 'العملاء والعقود', '#/m/contracts'], ['properties', 'الوحدات والعقارات', '#/m/properties'], ['projects', 'المشاريع', '#/m/projects'], ['treasury', 'الخزنة', '#/m/treasury'], ['stock', 'المخزن', '#/stock'], ['team', 'المقاولين والمهندسين', '#/m/contractors'], ['suppliers', 'الموردين', '#/m/suppliers'], ['reports', 'التقارير', '#/reports']];
+  const KEYNAV = { contracts: 'contracts', properties: 'properties', projects: 'projects', treasury: 'treasury', stockmoves: 'stock', stock: 'stock', contractors: 'team', suppliers: 'suppliers' };
+  function activeNav() {
+    const p = (location.hash || '#/').replace(/^#\/?/, '').split('/');
+    if (!p[0]) return 'home';
+    if (p[0] === 'm' || p[0] === 'd') return KEYNAV[p[1]] || 'home';
+    if (p[0] === 'contract' || p[0] === 'receipt') return 'contracts';
+    if (p[0] === 'stock') return 'stock';
+    if (p[0] === 'reports' || p[0] === 'calc') return 'reports';
+    return p[0] === 'alerts' || p[0] === 'settings' ? p[0] : 'home';
+  }
+  let sbBound = false;
+  function updateShell() {
+    const side = document.getElementById('side'), shell = document.getElementById('shell');
+    if (!side) return;
+    const m = S.meta();
+    if (!side.firstElementChild) {
+      side.innerHTML = `<div class="sb-brand">${O.BRAND}<div><strong></strong><small>إدارة العقارات والمقاولات</small></div><button class="sb-tg" data-sb="tg" aria-label="طي القائمة">${ICON.back}</button></div>
+      <nav class="sbn" aria-label="الأقسام"><span class="mark" aria-hidden="true"></span>${NAV.map(([k, l, h]) => `<a class="nv" href="${h}" data-k="${k}" title="${l}">${k === 'home' ? `<span class="ti h-blue">${HOME_SVG}</span>` : O.badgeIcon(k)}<span class="nl">${l}</span><span class="nb" data-bd="${k}" hidden></span></a>`).join('')}</nav>
+      <div class="sb-foot"><a class="sbi bellr" href="#/alerts" data-k="alerts" title="التنبيهات" aria-label="التنبيهات">${ICON.bell}<i class="nb2" hidden></i></a><a class="sbi" href="#/settings" data-k="settings" title="الإعدادات" aria-label="الإعدادات">${ICON.gear}</a><button class="sbi" data-sb="theme" title="تبديل المظهر" aria-label="تبديل المظهر"></button><button class="sbi" data-sb="snd" title="الصوت" aria-label="الصوت"></button><button class="sbi" data-sb="bk" title="تحميل نسخة احتياطية" aria-label="تحميل نسخة احتياطية">${ICON.download}</button></div>`;
+    }
+    if (!sbBound) {
+      sbBound = true;
+      try { if (localStorage.getItem('omran_sb') === 'slim') shell.classList.add('slim'); } catch (e) { /* لا شيء */ }
+      side.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-sb]');
+        if (!b) return;
+        const a = b.dataset.sb;
+        if (a === 'tg') { shell.classList.toggle('slim'); try { localStorage.setItem('omran_sb', shell.classList.contains('slim') ? 'slim' : 'wide'); } catch (err) { /* لا شيء */ } setTimeout(placeMark, 380); }
+        if (a === 'theme') { S.setMeta({ theme: S.meta().theme === 'light' ? 'dark' : 'light' }); applyTheme(); updateShell(); }
+        if (a === 'snd') { S.setMeta({ sound: !S.meta().sound }); updateShell(); beep(); }
+        if (a === 'bk') { await downloadBackup(); toast('تم تحميل النسخة الاحتياطية'); }
+      });
+      w.addEventListener('resize', placeMark);
+    }
+    side.querySelector('.sb-brand strong').textContent = m.company || 'عمران';
+    const act = activeNav(), al = O.alerts().length;
+    side.querySelectorAll('[data-k]').forEach((a) => { const on = a.dataset.k === act; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    const setBd = (k, n, tone) => { const el = side.querySelector(`[data-bd="${k}"]`); if (!el) return; el.hidden = !n; el.textContent = n || ''; el.className = 'nb ' + (tone || ''); };
+    setBd('contracts', O.overdueCount(), 'red');
+    setBd('stock', Object.values(O.stockMap()).filter((r) => r.min > 0 && r.qty <= r.min).length, 'orange');
+    const bell = side.querySelector('.bellr');
+    bell.classList.toggle('has', al > 0);
+    const nb2 = bell.querySelector('.nb2'); nb2.hidden = !al; nb2.textContent = al;
+    side.querySelector('[data-sb="theme"]').innerHTML = m.theme === 'light' ? ICON.moon : ICON.sun;
+    const sn = side.querySelector('[data-sb="snd"]'); sn.innerHTML = m.sound ? ICON.sound : ICON.mute; sn.setAttribute('aria-pressed', m.sound);
+    placeMark();
+  }
+  function placeMark() {
+    const side = document.getElementById('side'), mk = side && side.querySelector('.mark'), on = side && side.querySelector('.nv.on');
+    if (!mk) return;
+    if (!on) { mk.style.opacity = 0; return; }
+    mk.style.opacity = 1; mk.style.height = on.offsetHeight + 'px'; mk.style.transform = `translateY(${on.offsetTop}px)`;
+  }
+  // الأرقام بتعدّ من صفر للقيمة
+  function animateCounts(host) {
+    const els = host.querySelectorAll('[data-count]');
+    if (RM() || !els.length) return;
+    const t0 = performance.now(), D = 900;
+    els.forEach((el) => { el.textContent = fmt(0); });
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3);
+      els.forEach((el) => { el.textContent = fmt((+el.dataset.count || 0) * e); });
+      if (k < 1) requestAnimationFrame(step); else els.forEach((el) => { el.textContent = fmt(+el.dataset.count || 0); });
+    };
+    requestAnimationFrame(step);
+  }
 
+  /* ================= الصفحة الرئيسية (لوحة التحكم) ================= */
   function homePage() {
-    const al = O.alerts(), m = S.meta();
+    const al = O.alerts(), m = S.meta(), t = today(), mo = t.slice(0, 7);
     const days = m.lastBackup ? Math.floor((Date.now() - m.lastBackup) / 864e5) : null;
     const showBk = S.hasData() && (days == null || days >= 7);
+    const act = S.all('contracts').filter((c) => c.status !== 'ملغي');
+    const rows = []; act.forEach((c) => O.unpaid(c).forEach((i) => rows.push(i)));
+    const od = sum(rows.filter((i) => i.due < t), O.instRem), soon = sum(rows.filter((i) => i.due >= t && i.due <= addDays(30)), O.instRem);
+    const T = S.all('treasury'), inMo = sum(T.filter((x) => x.type === 'in' && String(x.date).slice(0, 7) === mo), (x) => x.amount), outMo = sum(T.filter((x) => x.type === 'out' && String(x.date).slice(0, 7) === mo), (x) => x.amount);
+    const hr = new Date().getHours(), hello = hr < 5 ? 'مساء النور' : hr < 12 ? 'صباح الخير' : hr < 18 ? 'نهارك سعيد' : 'مساء الخير';
+    const KP = [
+      { l: 'رصيد الخزنة', v: O.balance(), ic: 'treasury', to: '#/m/treasury', sub: 'وارد الشهر ' + fmt(inMo) + ' · صادر ' + fmt(outMo), tone: O.balance() < 0 ? 'red' : '' },
+      { l: 'أقساط متأخرة', v: od, ic: 'contracts', to: '#/m/contracts', sub: O.overdueCount() ? O.overdueCount() + ' عميل متأخر' : 'مفيش متأخرات', tone: od ? 'red' : '' },
+      { l: 'مستحق خلال 30 يوم', v: soon, ic: 'reports', to: '#/reports', sub: 'أقساط جاية من العملاء', tone: '' },
+      { l: 'متبقي عند العملاء', v: sum(rows, O.instRem), ic: 'properties', to: '#/m/contracts', sub: act.length + ' عميل نشط', tone: '' }
+    ];
+    const months = [], now = new Date();
+    for (let i = 5; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push({ k: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), l: H.MONTHS[d.getMonth()] }); }
+    const mi = months.map((x) => sum(T.filter((f) => f.type === 'in' && String(f.date).slice(0, 7) === x.k), (f) => f.amount)), mx = months.map((x) => sum(T.filter((f) => f.type === 'out' && String(f.date).slice(0, 7) === x.k), (f) => f.amount));
+    const prj = S.all('projects').filter((p) => ['تنفيذ', 'تشطيب'].includes(p.status)).slice(0, 4);
     root().innerHTML = `<div class="wrap home">
-      <header class="panel hdr"><div class="clock"><div class="ct"><span class="ap" id="ap"></span><span id="tm"></span></div><div class="cd" id="dt"></div></div>
-        <div class="brand">${O.BRAND}<div><strong>${esc(m.company || 'عمران')}</strong><small>إدارة العقارات والمقاولات</small></div></div>
-        <div class="hbtns"><button class="ib" data-h="bk" title="تحميل نسخة احتياطية" aria-label="تحميل نسخة احتياطية">${ICON.download}</button><a class="ib" href="#/settings" title="الإعدادات" aria-label="الإعدادات">${ICON.gear}</a><button class="ib warn" data-h="bell" title="التنبيهات" aria-label="التنبيهات">${ICON.bell}${al.length ? '<i class="rd"></i>' : ''}</button><button class="ib sun" data-h="theme" title="تبديل المظهر" aria-label="تبديل المظهر">${m.theme === 'light' ? ICON.moon : ICON.sun}</button><button class="ib snd" data-h="snd" title="الصوت" aria-label="الصوت" aria-pressed="${m.sound}">${m.sound ? ICON.sound : ICON.mute}</button></div></header>
+      <section class="hello"><div><h2>${hello}</h2><p class="mut"><span id="dt"></span> · <span id="tm" dir="ltr"></span></p></div>
+        <div class="hq"><a class="btn primary" href="#/contract/new">${ICON.plus}<span>عميل جديد</span></a><button class="btn" data-q="in">وارد +</button><button class="btn" data-q="out">صادر −</button></div></section>
       ${showBk ? `<div class="banner" role="status"><span>${days == null ? 'لم تحفظ نسخة احتياطية من بياناتك بعد.' : 'آخر نسخة احتياطية كانت من ' + days + ' يوم.'}</span><button class="lnkb" data-h="bk">تحميل نسخة الآن</button></div>` : ''}
-      <nav class="tiles" aria-label="الوحدات">${TILES.map(([k, l, h, sub]) => { const s = sub(); return `<a class="tile" href="${h}">${O.badgeIcon(k)}<span class="tl"><b>${l}</b><small class="${s.tone || ''}">${esc(s.t)}</small></span></a>`; }).join('')}</nav>
-      <section class="panel alerts" aria-labelledby="ah"><div class="ahead"><h2 id="ah">التنبيهات</h2>${al.length ? `<span class="count">${al.length}</span>` : ''}<span class="ab">${ICON.bell}</span></div>
-        ${al.length ? `<div class="alist">${al.slice(0, 6).map((a) => `<a class="arow" href="${a.to}"><span class="dot ${a.tone}"></span><span>${esc(a.text)}</span></a>`).join('')}</div>${al.length > 6 ? '<a class="more" href="#/alerts">عرض كل التنبيهات (' + al.length + ')</a>' : ''}` : `<div class="empty small"><p>مفيش تنبيهات حالياً. سجّل عميل واكتب جدول أقساطه، وهتتنبه لوحدك قبل كل ميعاد.</p><div class="row-actions"><a class="btn primary" href="#/contract/new">تسجيل عميل جديد</a>${S.hasData() ? '' : '<button class="btn" data-h="demo">تحميل بيانات تجريبية</button>'}</div></div>`}</section>
-      <footer class="foot">الإصدار 2.0 · البيانات وملفات العقود محفوظة على جهازك</footer></div>`;
+      <div class="kpis">${KP.map((k) => `<a class="k2 ${HUEOF[k.ic]} ${k.tone}" href="${k.to}"><span class="ti">${TILE[k.ic]}</span><div><small>${k.l}</small><b><span class="cn" data-count="${k.v}">${fmt(k.v)}</span> <i>${esc(cur())}</i></b><em>${esc(k.sub)}</em></div></a>`).join('')}</div>
+      <div class="dash">
+        <section class="panel pad dchart"><h3>الوارد والصادر آخر 6 شهور</h3>${barsSVG(months.map((x) => x.l), mi, mx)}<div class="legend"><span><i style="background:var(--green)"></i>وارد</span><span><i style="background:var(--orange)"></i>صادر</span></div></section>
+        <section class="panel pad alerts dal" aria-labelledby="ah"><div class="ahead"><h2 id="ah">التنبيهات</h2>${al.length ? `<span class="count">${al.length}</span>` : ''}<span class="ab">${ICON.bell}</span></div>
+        ${al.length ? `<div class="alist">${al.slice(0, 5).map((a) => `<a class="arow" href="${a.to}"><span class="dot ${a.tone}"></span><span>${esc(a.text)}</span></a>`).join('')}</div>${al.length > 5 ? '<a class="more" href="#/alerts">عرض كل التنبيهات (' + al.length + ')</a>' : ''}` : `<div class="empty small"><p>مفيش تنبيهات حالياً. سجّل عميل واكتب جدول أقساطه، وهتتنبه لوحدك قبل كل ميعاد.</p>${S.hasData() ? '' : '<div class="row-actions"><button class="btn" data-h="demo">تحميل بيانات تجريبية</button></div>'}</div>`}</section>
+      </div>
+      ${prj.length ? `<section class="panel pad"><h3>مشاريع قيد التنفيذ</h3><div class="pgrid">${prj.map((p) => `<a class="pcard" href="#/d/projects/${p.id}"><b>${esc(p.name)}</b><small class="mut">${esc(p.status)}${p.end ? ' · التسليم ' + fdate(p.end) : ''}</small><div class="bar"><i style="width:${Math.min(100, +p.progress || 0)}%"></i><em>${fmt(+p.progress || 0)}<bdi>%</bdi></em></div></a>`).join('')}</div></section>` : ''}
+      <footer class="foot">الإصدار 3.0 · البيانات وملفات العقود محفوظة على جهازك</footer></div>`;
     const clock = () => {
       const d = new Date();
-      let h = d.getHours();
-      const ap = h >= 12 ? 'PM' : 'AM';
-      h = h % 12 || 12;
-      $('#ap').textContent = ap;
-      $('#tm').textContent = String(h).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      $('#tm').textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       $('#dt').textContent = d.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     };
     clock(); tick = setInterval(clock, 15000);
     root().onclick = async (e) => {
+      const q = e.target.closest('[data-q]');
+      if (q) { V.treasuryForm({ type: q.dataset.q }, route); return; }
       const b = e.target.closest('[data-h]');
       if (!b) return;
-      const a = b.dataset.h;
-      if (a === 'bk') { await downloadBackup(); toast('تم تحميل النسخة الاحتياطية'); homePage(); }
-      if (a === 'bell') go('#/alerts');
-      if (a === 'theme') { S.setMeta({ theme: S.meta().theme === 'light' ? 'dark' : 'light' }); applyTheme(); homePage(); }
-      if (a === 'snd') { S.setMeta({ sound: !S.meta().sound }); homePage(); beep(); }
-      if (a === 'demo') { O.loadDemo(); toast('تم تحميل البيانات التجريبية'); homePage(); }
+      if (b.dataset.h === 'bk') { await downloadBackup(); toast('تم تحميل النسخة الاحتياطية'); homePage(); animateCounts(root()); }
+      if (b.dataset.h === 'demo') { O.loadDemo(); toast('تم تحميل البيانات التجريبية'); route(); }
     };
   }
+  const HUEOF = { treasury: 'h-green', contracts: 'h-pink', reports: 'h-indigo', properties: 'h-orange' };
 
   function applyTheme() { document.documentElement.dataset.theme = S.meta().theme === 'light' ? 'light' : 'dark'; }
 
@@ -718,6 +791,8 @@
   function route() {
     clearInterval(tick);
     applyTheme();
+    const stage = root();
+    stage.classList.remove('enter'); void stage.offsetWidth; stage.classList.add('enter');
     const p = (location.hash || '#/').replace(/^#\/?/, '').split('/');
     window.scrollTo(0, 0);
     root().onclick = root().oninput = root().onchange = root().onkeydown = null;
@@ -737,6 +812,8 @@
       console.error(err);
       root().innerHTML = '<div class="wrap"><div class="empty"><p>حصل خطأ غير متوقع في عرض الصفحة.</p><a class="btn primary" href="#/">العودة للرئيسية</a></div></div>';
     }
+    updateShell();
+    animateCounts(root());
   }
   O.route = route;
   O.go = go;
