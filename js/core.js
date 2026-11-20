@@ -221,10 +221,10 @@
     });
   });
 
-  const ask = (title, label, def, hint) => new Promise((res) => {
+  const ask = (title, label, def, hint, mode) => new Promise((res) => {
     let val = null;
     const body = document.createElement('div');
-    body.innerHTML = `<label class="fld"><span>${esc(label)}</span><input inputmode="decimal" value="${esc(def == null ? '' : def)}"></label>${hint ? `<p class="mut">${esc(hint)}</p>` : ''}`;
+    body.innerHTML = `<label class="fld"><span>${esc(label)}</span><input inputmode="${mode || 'decimal'}" value="${esc(def == null ? '' : def)}"></label>${hint ? `<p class="mut">${esc(hint)}</p>` : ''}`;
     const inp = body.querySelector('input');
     const m = modal({
       title, body, sticky: true,

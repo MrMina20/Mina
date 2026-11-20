@@ -646,7 +646,9 @@
       <section class="panel pad"><h3>الشركة والتنبيهات</h3><div class="fgrid cols3"><label class="fld"><span>اسم الشركة</span><input id="company" value="${esc(m.company)}"></label><label class="fld"><span>العملة</span><input id="currency" value="${esc(m.currency)}"></label><label class="fld"><span>نبّهني قبل ميعاد القسط بكام يوم</span><input id="alertDays" inputmode="numeric" value="${esc(m.alertDays || 7)}"></label></div><div class="row-actions"><button class="btn primary" id="saveS">حفظ الإعدادات</button></div></section>
       <section class="panel pad"><h3>النسخ الاحتياطي</h3><p class="mut">كل بياناتك وملفات العقود محفوظة على الجهاز ده فقط داخل المتصفح. حمّل نسخة احتياطية بشكل منتظم، وارفعها لو غيّرت الجهاز أو المتصفح.${m.lastBackup ? ' آخر نسخة: ' + new Date(m.lastBackup).toLocaleDateString('ar-EG') : ''}</p><div class="row-actions"><button class="btn primary" id="bk">${ICON.download}<span>تحميل نسخة احتياطية</span></button><label class="btn">رفع نسخة احتياطية<input type="file" id="rs" accept="application/json,.json" hidden></label></div></section>
       <section class="panel pad"><h3>بيانات تجريبية</h3><p class="mut">حمّل بيانات تجريبية لتجربة البرنامج، وتقدر تحذفها بعدين من غير ما تأثر على بياناتك الحقيقية.</p><div class="row-actions"><button class="btn" id="demo">تحميل بيانات تجريبية</button><button class="btn" id="undemo">حذف البيانات التجريبية فقط</button></div></section>
+      <section class="panel pad" id="devsec"></section>
       <section class="panel pad"><h3>مسح كل البيانات</h3><p class="mut">يحذف كل السجلات وملفات العقود من هذا المتصفح نهائياً. حمّل نسخة احتياطية قبل ما تكمل.</p><div class="row-actions"><button class="btn danger" id="wipe">مسح كل البيانات</button></div></section></main>`;
+    O.License.mountDev($('#devsec'));
     root().onclick = async (e) => {
       const b = e.target.closest('button');
       if (!b) return;
@@ -757,7 +759,7 @@
     const mi = months.map((x) => sum(T.filter((f) => f.type === 'in' && String(f.date).slice(0, 7) === x.k), (f) => f.amount)), mx = months.map((x) => sum(T.filter((f) => f.type === 'out' && String(f.date).slice(0, 7) === x.k), (f) => f.amount));
     const prj = S.all('projects').filter((p) => ['تنفيذ', 'تشطيب'].includes(p.status)).slice(0, 4);
     root().innerHTML = `<div class="wrap home">
-      <section class="hello"><div><h2>${hello}</h2><p class="mut"><span id="dt"></span> · <span id="tm" dir="ltr"></span></p></div>
+      <section class="hello"><div><h2>${hello}</h2><p class="mut"><span id="dt"></span> · <span id="tm" dir="ltr"></span>${O.License.chip()}</p></div>
         <div class="hq"><a class="btn primary" href="#/contract/new">${ICON.plus}<span>عميل جديد</span></a><button class="btn" data-q="in">وارد +</button><button class="btn" data-q="out">صادر −</button></div></section>
       ${showBk ? `<div class="banner" role="status"><span>${days == null ? 'لم تحفظ نسخة احتياطية من بياناتك بعد.' : 'آخر نسخة احتياطية كانت من ' + days + ' يوم.'}</span><button class="lnkb" data-h="bk">تحميل نسخة الآن</button></div>` : ''}
       <div class="kpis">${KP.map((k) => `<a class="k2 ${HUEOF[k.ic]} ${k.tone}" href="${k.to}"><span class="ti">${TILE[k.ic]}</span><div><small>${k.l}</small><b><span class="cn" data-count="${k.v}">${fmt(k.v)}</span> <i>${esc(cur())}</i></b><em>${esc(k.sub)}</em></div></a>`).join('')}</div>
@@ -791,6 +793,9 @@
   function route() {
     clearInterval(tick);
     applyTheme();
+    const lic = O.License.status();
+    document.getElementById('shell').classList.toggle('locked', !lic.ok);
+    if (!lic.ok) { O.License.gate(lic); return; }
     const stage = root();
     stage.classList.remove('enter'); void stage.offsetWidth; stage.classList.add('enter');
     const p = (location.hash || '#/').replace(/^#\/?/, '').split('/');

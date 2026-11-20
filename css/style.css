@@ -369,3 +369,18 @@ body::before { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-e
 .banner { margin: 0 0 18px; }
 .dash { align-items: start; }
 @media (min-width: 1000px) { .iamts { flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px 28px; min-width: 0; flex-wrap: wrap; max-width: 62%; } .iamts .amt { min-width: 110px; } .item { align-items: center; } }
+
+/* شاشة القفل ونسخة المطور */
+#shell.locked { display: block; } .locked #side { display: none; }
+.gate { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.gcard { width: min(440px, 100%); padding: 28px; display: grid; gap: 14px; animation: pop .5s var(--ease) both; }
+.gbrand { display: flex; align-items: center; gap: 12px; } .gbrand svg { width: 46px; height: 46px; } .gbrand strong { display: block; font-size: 21px; } .gbrand small { color: var(--mut); }
+.gcard h2 { margin: 6px 0 0; font-size: 24px; } .gcard p { margin: 0; }
+.gcard input { width: 100%; background: var(--card2); border: 1px solid var(--line); border-radius: 13px; padding: 12px 14px; min-height: 48px; }
+.gcard input:focus { outline: none; border-color: var(--blue); }
+.gcard .btn { justify-content: center; min-height: 50px; } .gerr { color: var(--red); min-height: 1.4em; font-size: 15px; } .gdev { justify-self: center; font-size: 14px; color: var(--mut); }
+.trial { color: var(--orange); font-weight: 600; }
+.dvout { margin: 14px 0; padding: 16px; border-radius: 16px; background: var(--card2); border: 1px solid var(--line); display: grid; gap: 8px; } .dvout small { color: var(--mut); }
+.dvout textarea, .dvta { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; word-break: break-all; resize: none; }
+.dvh { margin: 18px 0 8px; } .dvnote { font-size: 14px; } .dvnote code { direction: ltr; unicode-bidi: embed; }
+.tbl td.ra .lnk + .lnk { margin-inline-start: 14px; }
