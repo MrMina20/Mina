@@ -5,6 +5,7 @@
    تنبيه: البرنامج بيشتغل كله في المتصفح، فالقفل ده للتجربة والتنظيم مش حماية قوية. */
 window.OMRAN_CONFIG = {
   gate: true,
+  iter: 30000,
   secret: '20d45196cd50e68069059f9bd59543bf1472a1829dde7535',
-  devHash: '2eb8eba8bbb5ffd6de9b4d8e1ff3bb4d291eb4359efb7283992d4dffabadd75e'
+  devHash: 'e9a3237397d9a17a6202c5977709fed09fa37c0c9a3eda93a24dba49abd7ff2e'
 };

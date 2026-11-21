@@ -37,7 +37,8 @@
   const b64 = (b) => btoa(String.fromCharCode.apply(null, b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64 = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
   const sign = (p) => b64(hmac(enc.encode(CFG.secret), enc.encode(p)).slice(0, 12));
-  const devHash = (pass) => hex(sha256(enc.encode(pass + '|' + CFG.secret)));
+  const ITER = CFG.iter || 30000;
+  const devHash = (pass) => { const pb = enc.encode(pass); let h = sha256(enc.encode(pass + '|' + CFG.secret)); for (let i = 0; i < ITER; i++) { const x = new Uint8Array(32 + pb.length); x.set(h); x.set(pb, 32); h = sha256(x); } return hex(h); };
   const uname = (s) => H.norm(String(s || '')).replace(/\s+/g, ' ').trim();
 
   /* ---- الوقت: ما بيرجعش لورا حتى لو الجهاز اتلعب في ساعته ---- */
@@ -56,8 +57,8 @@
   }
   const left = (e) => {
     const s = e - nowSec();
-    if (s >= 172800) return Math.floor(s / 86400) + ' يوم';
-    if (s >= 3600) return Math.floor(s / 3600) + ' ساعة';
+    if (s >= 172800) return Math.ceil(s / 86400) + ' يوم';
+    if (s >= 3600) return Math.ceil(s / 3600) + ' ساعة';
     return Math.max(1, Math.ceil(s / 60)) + ' دقيقة';
   };
   const when = (e) => new Date(e * 1000).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
@@ -87,46 +88,65 @@
       <div class="gbrand">${O.BRAND}<div><strong>${H.esc(S.meta().company || 'عمران')}</strong><small>إدارة العقارات والمقاولات</small></div></div>
       <h2>${expired ? 'انتهت فترة التجربة' : 'نسخة تجريبية'}</h2>
       <p class="mut">${expired ? 'انتهت التجربة بتاريخ ' + when(st.exp) + '. اطلب كود جديد وكمّل من حيث وقفت، بياناتك محفوظة.' : 'اكتب اسم المستخدم وكود التجربة اللي وصلك.'}</p>
-      <label class="fld"><span>اسم المستخدم</span><input id="gu" value="${H.esc((st && st.user) || '')}" autocomplete="off"></label>
+      <label class="fld"><span>اسم المستخدم</span><input id="gu" value="${H.esc((st && st.user) || joinName())}" autocomplete="off"></label>
       <label class="fld"><span>كود التجربة</span><input id="gc" dir="ltr" placeholder="OM1...." autocomplete="off"></label>
       <p class="gerr" id="ge" role="alert"></p>
-      <button class="btn primary" type="submit">دخول</button>
-      <button class="lnkb gdev" type="button" id="gd">دخول المطور</button></form></div>`;
+      <button class="btn primary" type="submit">دخول</button></form></div>`;
     document.getElementById('gf').onsubmit = (ev) => {
       ev.preventDefault();
       const err = activate(document.getElementById('gu').value, document.getElementById('gc').value);
       if (err) { document.getElementById('ge').textContent = err; return; }
-      toast('أهلاً بيك، التجربة اشتغلت'); O.route();
+      toast('أهلاً بيك، التجربة اشتغلت'); location.hash = '#/'; O.route();
     };
-    document.getElementById('gd').onclick = async () => { if (await devLogin()) { toast('تم الدخول كمطور'); O.route(); } };
+    const gc = document.getElementById('gc'); if (gc && document.getElementById('gu').value) gc.focus();
   }
-  async function devLogin() {
-    const pass = await O.ask('دخول المطور', 'كلمة سر المطور', '', null, 'text');
-    if (pass == null) return false;
-    if (devHash(pass.trim()) === CFG.devHash) { LS.set('omran_dev', '1'); return true; }
-    toast('كلمة السر غلط', 'warn'); return false;
+  const joinName = () => { const m = (location.hash || '').match(/^#\/join\/(.+)$/); try { return m ? decodeURIComponent(m[1]) : ''; } catch (e) { return ''; } };
+  // دخول المطور: بيبطّأ المحاولات الغلط (30 ثانية بعد 3 محاولات وبيتضاعف)
+  function tryDev(pass) {
+    let f = { n: 0, until: 0 }; try { f = JSON.parse(LS.get('omran_fail') || '') || f; } catch (e) { /* لا شيء */ }
+    const t = Date.now();
+    if (f.until > t) return 'استنى ' + Math.ceil((f.until - t) / 1000) + ' ثانية وجرّب تاني.';
+    if (devHash(String(pass || '').trim()) === CFG.devHash) { LS.set('omran_dev', '1'); LS.del('omran_fail'); return ''; }
+    f.n = (f.n || 0) + 1; f.until = f.n >= 3 ? t + Math.min(900000, 30000 * Math.pow(2, f.n - 3)) : 0; LS.set('omran_fail', JSON.stringify(f));
+    return 'كلمة السر غلط.';
   }
+  // صفحة دخول المطور (#/dev) ومنها لوحة توليد الأكواد واللينكات
+  function devPage() {
+    const app = document.getElementById('app');
+    if (LS.get('omran_dev') === '1') {
+      app.innerHTML = `<header class="topbar noprint"><h1>لوحة المطور</h1></header><main class="wrap inner"><section class="panel pad" id="devsec"></section></main>`;
+      mountDev(app.querySelector('#devsec')); return;
+    }
+    app.innerHTML = `<div class="gate"><form class="gcard panel" id="df" autocomplete="off">
+      <div class="gbrand">${O.BRAND}<div><strong>دخول المطور</strong><small>للمطور فقط</small></div></div>
+      <label class="fld"><span>كلمة سر المطور</span><input id="dp" type="password" autocomplete="current-password"></label>
+      <p class="gerr" id="de" role="alert"></p><button class="btn primary" type="submit">دخول</button></form></div>`;
+    document.getElementById('dp').focus();
+    document.getElementById('df').onsubmit = (ev) => {
+      ev.preventDefault();
+      const btn = ev.target.querySelector('button'); btn.disabled = true;
+      setTimeout(() => { const err = tryDev(document.getElementById('dp').value); btn.disabled = false; if (err) document.getElementById('de').textContent = err; else { toast('أهلاً يا مطور'); O.route(); } }, 30);
+    };
+  }
+  const isDev = () => LS.get('omran_dev') === '1';
 
   /* ---- لوحة المطور في الإعدادات ---- */
   const trials = () => { try { return JSON.parse(LS.get('omran_trials') || '[]'); } catch (e) { return []; } };
   const saveTrials = (a) => LS.set('omran_trials', JSON.stringify(a));
   const copy = async (t) => { try { await navigator.clipboard.writeText(t); toast('تم النسخ'); } catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('تم النسخ'); } catch (er) { toast('انسخه يدوي', 'warn'); } ta.remove(); } };
-  const msg = (t) => `جرّب برنامج عمران لإدارة العقارات والمقاولات\nالرابط: ${location.href.split('#')[0]}\nاسم المستخدم: ${t.u}\nكود التجربة: ${t.code}\nالتجربة شغالة حتى ${when(t.e)} (${left(t.e)}).`;
+  const link = (u) => location.href.split('#')[0] + '#/join/' + encodeURIComponent(u);
+  const msg = (t) => `جرّب برنامج عمران لإدارة العقارات والمقاولات\nالرابط: ${link(t.u)}\nاسم المستخدم: ${t.u}\nكود التجربة: ${t.code}\nالتجربة شغالة حتى ${when(t.e)} (${left(t.e)}).`;
 
   function mountDev(host) {
     const draw = (last) => {
-      if (LS.get('omran_dev') !== '1') {
-        host.innerHTML = `<h3>نسخة المطور</h3><p class="mut">لتجهيز اسم مستخدم وكود تجربة لعميل بمدة محددة. محتاجة كلمة سر المطور.</p><button class="btn" id="dvo">فتح نسخة المطور</button>`;
-        host.querySelector('#dvo').onclick = async () => { if (await devLogin()) draw(); };
-        return;
-      }
+      if (!isDev()) { host.innerHTML = ''; return; }
       const list = trials().sort((a, b) => b.created - a.created);
       host.innerHTML = `<h3>نسخة المطور: كود تجربة جديد</h3>
         <div class="fgrid cols3"><label class="fld"><span>اسم المستخدم (للعميل)</span><input id="dvu" placeholder="مثلاً: شركة النور"></label>
         <label class="fld"><span>المدة</span><div class="dur"><input id="dvn" inputmode="decimal" value="3"><select id="dvt"><option value="h">ساعة</option><option value="d" selected>يوم</option><option value="m">شهر</option><option value="y">سنة</option></select></div></label>
         <div class="fld"><span>&nbsp;</span><button class="btn primary" id="dvm">إنشاء الكود</button></div></div>
-        ${last ? `<div class="dvout"><b>${H.esc(last.u)}</b><small>تنتهي ${when(last.e)} (متبقي ${left(last.e)})</small><textarea readonly dir="ltr" rows="3" id="dvc">${last.code}</textarea><div class="row-actions"><button class="btn" data-cp="${last.code}">نسخ الكود</button><button class="btn" id="dvmsg">نسخ رسالة جاهزة للعميل</button></div></div>` : ''}
-        ${list.length ? `<h3 class="dvh">الأكواد اللي اتعملت (${list.length})</h3><div class="tblw"><table class="tbl"><thead><tr><th>المستخدم</th><th>تنتهي</th><th>الحالة</th><th></th></tr></thead><tbody>${list.map((t, i) => `<tr><td>${H.esc(t.u)}</td><td>${when(t.e)}</td><td>${t.e > nowSec() ? `<span class="g">شغال (${left(t.e)})</span>` : '<span class="mut">منتهي</span>'}</td><td class="ra"><button class="lnk" data-cpm="${i}">نسخ الرسالة</button><button class="lnk del" data-rm="${t.created}">حذف من القائمة</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+        ${last ? `<div class="dvout"><b>${H.esc(last.u)}</b><small>تنتهي ${when(last.e)} (متبقي ${left(last.e)})</small><textarea readonly dir="ltr" rows="3" id="dvc">${last.code}</textarea><div class="dvlink"><small>اللينك للعميل (اسمه مكتوب فيه جاهز)</small><input readonly dir="ltr" value="${link(last.u)}"></div><div class="row-actions"><button class="btn primary" data-cpl="${link(last.u)}">نسخ اللينك</button><button class="btn" data-cp="${last.code}">نسخ الكود</button><button class="btn" id="dvmsg">نسخ رسالة كاملة</button></div></div>` : ''}
+        ${list.length ? `<h3 class="dvh">الأكواد اللي اتعملت (${list.length})</h3><div class="tblw"><table class="tbl"><thead><tr><th>المستخدم</th><th>تنتهي</th><th>الحالة</th><th></th></tr></thead><tbody>${list.map((t, i) => `<tr><td>${H.esc(t.u)}</td><td>${when(t.e)}</td><td>${t.e > nowSec() ? `<span class="g">شغال (${left(t.e)})</span>` : '<span class="mut">منتهي</span>'}</td><td class="ra"><button class="lnk" data-cpl="${link(t.u)}">اللينك</button><button class="lnk" data-cp="${t.code}">الكود</button><button class="lnk" data-cpm="${i}">الرسالة</button><button class="lnk del" data-rm="${t.created}">حذف من القائمة</button></td></tr>`).join('')}</tbody></table></div>` : ''}
         <p class="mut dvnote">الكود بيشتغل في متصفح العميل من غير إنترنت ولا سيرفر، وما فيش طريقة تلغيه قبل ميعاده. ولأن البرنامج كله بيشتغل في المتصفح فالقفل ده للتجربة والتنظيم مش حماية قوية. لإلغاء كل الأكواد القديمة غيّر <code>secret</code> في config.js.</p>
         <div class="row-actions"><button class="btn" id="dvp">تغيير كلمة سر المطور</button><button class="btn" id="dvx">خروج من وضع المطور</button></div>`;
       host.onclick = async (e) => {
@@ -140,10 +160,11 @@
           saveTrials(trials().concat(t)); draw(t);
         }
         if (b.dataset.cp) copy(b.dataset.cp);
+        if (b.dataset.cpl) copy(b.dataset.cpl);
         if (b.id === 'dvmsg') copy(msg(last));
         if (b.dataset.cpm != null) copy(msg(list[+b.dataset.cpm]));
         if (b.dataset.rm) { saveTrials(trials().filter((t) => String(t.created) !== b.dataset.rm)); draw(last); }
-        if (b.id === 'dvx') { LS.del('omran_dev'); toast('تم الخروج من وضع المطور'); O.route(); }
+        if (b.id === 'dvx') { LS.del('omran_dev'); toast('تم الخروج من وضع المطور'); location.hash = '#/dev'; O.route(); }
         if (b.id === 'dvp') {
           const p = await O.ask('كلمة سر جديدة', 'كلمة السر الجديدة', '', 'هيطلعلك سطر تنسخه في ملف js/config.js مكان devHash.', 'text');
           if (p && p.trim().length >= 6) { const line = "devHash: '" + devHash(p.trim()) + "'"; const bd = document.createElement('div'); bd.innerHTML = `<p>الصق السطر ده في <b>js/config.js</b> مكان سطر devHash، وارفع الملف:</p><textarea readonly dir="ltr" rows="3" class="dvta">${line}</textarea>`; modal({ title: 'كلمة سر المطور', body: bd, actions: [{ l: 'نسخ السطر', cls: 'primary', fn: () => copy(line) }, { l: 'إغلاق', fn: (c) => c() }] }); } else if (p != null) toast('اكتب 6 حروف على الأقل', 'warn');
@@ -155,5 +176,6 @@
 
   const chip = () => { const st = status(); return st.ok && st.exp ? ` · <span class="trial">فترة التجربة: متبقي ${left(st.exp)}</span>` : ''; };
   setInterval(() => { if (CFG.gate && !status().ok && !document.querySelector('.gate')) O.route(); }, 20000);
-  O.License = { status, gate, mountDev, chip, _t: { sha256, hmac, hex, make, parse, devHash, activate } };
+  const settingsLink = (host) => { host.hidden = !isDev(); host.innerHTML = isDev() ? '<h3>نسخة المطور</h3><p class="mut">توليد لينكات وأكواد تجربة للعملاء بمدة تحددها.</p><a class="btn primary" href="#/dev">فتح لوحة المطور</a>' : ''; };
+  O.License = { status, gate, devPage, settingsLink, mountDev, chip, _t: { sha256, hmac, hex, make, parse, devHash, activate } };
 })(window);

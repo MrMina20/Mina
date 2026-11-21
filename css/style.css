@@ -384,3 +384,4 @@ body::before { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-e
 .dvout textarea, .dvta { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; word-break: break-all; resize: none; }
 .dvh { margin: 18px 0 8px; } .dvnote { font-size: 14px; } .dvnote code { direction: ltr; unicode-bidi: embed; }
 .tbl td.ra .lnk + .lnk { margin-inline-start: 14px; }
+.dvlink { display: grid; gap: 4px; } .dvlink small { color: var(--mut); } .dvlink input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px; font-size: 13px; }

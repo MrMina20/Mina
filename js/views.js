@@ -648,7 +648,7 @@
       <section class="panel pad"><h3>بيانات تجريبية</h3><p class="mut">حمّل بيانات تجريبية لتجربة البرنامج، وتقدر تحذفها بعدين من غير ما تأثر على بياناتك الحقيقية.</p><div class="row-actions"><button class="btn" id="demo">تحميل بيانات تجريبية</button><button class="btn" id="undemo">حذف البيانات التجريبية فقط</button></div></section>
       <section class="panel pad" id="devsec"></section>
       <section class="panel pad"><h3>مسح كل البيانات</h3><p class="mut">يحذف كل السجلات وملفات العقود من هذا المتصفح نهائياً. حمّل نسخة احتياطية قبل ما تكمل.</p><div class="row-actions"><button class="btn danger" id="wipe">مسح كل البيانات</button></div></section></main>`;
-    O.License.mountDev($('#devsec'));
+    O.License.settingsLink($('#devsec'));
     root().onclick = async (e) => {
       const b = e.target.closest('button');
       if (!b) return;
@@ -679,7 +679,7 @@
     if (p[0] === 'contract' || p[0] === 'receipt') return 'contracts';
     if (p[0] === 'stock') return 'stock';
     if (p[0] === 'reports' || p[0] === 'calc') return 'reports';
-    return p[0] === 'alerts' || p[0] === 'settings' ? p[0] : 'home';
+    return p[0] === 'alerts' || p[0] === 'settings' ? p[0] : p[0] === 'dev' ? 'settings' : 'home';
   }
   let sbBound = false;
   function updateShell() {
@@ -793,6 +793,10 @@
   function route() {
     clearInterval(tick);
     applyTheme();
+    if ((location.hash || '').replace(/^#\/?/, '').split('/')[0] === 'dev') {
+      document.getElementById('shell').classList.toggle('locked', !O.License.status().dev);
+      O.License.devPage(); updateShell(); animateCounts(root()); return;
+    }
     const lic = O.License.status();
     document.getElementById('shell').classList.toggle('locked', !lic.ok);
     if (!lic.ok) { O.License.gate(lic); return; }
