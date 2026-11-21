@@ -6,6 +6,7 @@
 window.OMRAN_CONFIG = {
   gate: true,
   iter: 30000,
+  api: '', // رابط سيرفر الأكواد (Cloudflare Worker). فاضي = أكواد محلية بحماية خفيفة. شوف worker/README.md
   secret: '20d45196cd50e68069059f9bd59543bf1472a1829dde7535',
   devHash: 'a407e7d373529e69d11e21c1dcbfa3d6e0796b52b6933411c794143f7a0aa107'
 };
