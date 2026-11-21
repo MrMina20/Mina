@@ -2,9 +2,9 @@
 
 برنامج ويب عربي (RTL) بسيط لشركة مقاولات واستثمار عقاري. يعمل مباشرة من المتصفح بدون سيرفر ولا تثبيت. البيانات في `localStorage` وملفات العقود (PDF/صور) في `IndexedDB`، كله على جهازك.
 
-**المستودع:** https://github.com/MrMina20/Mina
+**دخول المطور:** https://mrmina20.github.io/Mina/#/dev (بيطلب كلمة سر المطور)
 
-**الموقع (GitHub Pages):** https://mrmina20.github.io/Mina/
+**صفحة العميل:** https://mrmina20.github.io/Mina/ (بيطلب كود التجربة)
 
 ## التشغيل
 

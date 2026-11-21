@@ -89,7 +89,7 @@
     app.innerHTML = `<div class="gate"><form class="gcard panel" id="gf" autocomplete="off">
       <div class="gbrand">${O.BRAND}<div><strong>${H.esc(S.meta().company || 'عمران')}</strong><small>إدارة العقارات والمقاولات</small></div></div>
       <h2>${expired ? 'انتهت فترة التجربة' : 'نسخة تجريبية'}</h2>
-      <p class="mut">${expired ? 'انتهت التجربة بتاريخ ' + when(st.exp) + '. اطلب كود جديد وكمّل من حيث وقفت، بياناتك محفوظة.' : 'اكتب اسم المستخدم وكود التجربة اللي وصلك.'}</p>
+      <p class="mut">${expired ? 'انتهت التجربة بتاريخ ' + when(st.exp) + '. اطلب كود جديد وكمّل من حيث وقفت، بياناتك محفوظة.' : 'من فضلك ادخل الكود. اكتب اسم المستخدم وكود التجربة اللي وصلك.'}</p>
       <label class="fld"><span>اسم المستخدم</span><input id="gu" value="${H.esc((st && st.user) || joinName() || LS.get('omran_lu') || '')}" autocomplete="off"></label>
       <label class="fld"><span>كود التجربة</span><input id="gc" dir="ltr" placeholder="OM1...." autocomplete="off"></label>
       <p class="gerr" id="ge" role="alert"></p>
@@ -121,6 +121,7 @@
     }
     app.innerHTML = `<div class="gate"><form class="gcard panel" id="df" autocomplete="off">
       <div class="gbrand">${O.BRAND}<div><strong>دخول المطور</strong><small>للمطور فقط</small></div></div>
+      <p class="mut">من فضلك ادخل كلمة سر المطور.</p>
       <label class="fld"><span>كلمة سر المطور</span><input id="dp" type="password" autocomplete="off"></label>
       <label class="chk"><input type="checkbox" id="dr"><span>حفظ الدخول على هذا الجهاز (من غير ما يطلب الباسورد تاني)</span></label>
       <p class="gerr" id="de" role="alert"></p><button class="btn primary" type="submit">دخول</button></form></div>`;
