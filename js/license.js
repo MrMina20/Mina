@@ -46,7 +46,7 @@
   /* ---- الوقت: ما بيرجعش لورا حتى لو الجهاز اتلعب في ساعته ---- */
   const nowSec = () => { const real = Math.floor(Date.now() / 1000), last = +LS.get('omran_ls') || 0, t = Math.max(real, last); if (t > last) LS.set('omran_ls', String(t)); return t; };
 
-  const UNITS = { h: ['ساعة', 3600], d: ['يوم', 86400], m: ['شهر', 2592000], y: ['سنة', 31536000] };
+  const UNITS = { n: ['دقيقة', 60], h: ['ساعة', 3600], d: ['يوم', 86400], m: ['شهر', 2592000], y: ['سنة', 31536000] };
   function make(user, n, unit) {
     const e = nowSec() + Math.round(n * UNITS[unit][1]);
     const p = b64(enc.encode(JSON.stringify({ u: user.trim(), e })));
@@ -146,7 +146,7 @@
       const list = trials().sort((a, b) => b.created - a.created);
       host.innerHTML = `<h3>نسخة المطور: كود تجربة جديد</h3>
         <div class="fgrid cols3"><label class="fld"><span>اسم المستخدم (للعميل)</span><input id="dvu" placeholder="مثلاً: شركة النور"></label>
-        <label class="fld"><span>المدة</span><div class="dur"><input id="dvn" inputmode="decimal" value="3"><select id="dvt"><option value="h">ساعة</option><option value="d" selected>يوم</option><option value="m">شهر</option><option value="y">سنة</option></select></div></label>
+        <label class="fld"><span>المدة</span><div class="dur"><input id="dvn" inputmode="decimal" value="3"><select id="dvt"><option value="n">دقيقة</option><option value="h">ساعة</option><option value="d" selected>يوم</option><option value="m">شهر</option><option value="y">سنة</option></select></div></label>
         <div class="fld"><span>&nbsp;</span><button class="btn primary" id="dvm">إنشاء الكود</button></div></div>
         ${last ? `<div class="dvout"><b>${H.esc(last.u)}</b><small>تنتهي ${when(last.e)} (متبقي ${left(last.e)})</small><textarea readonly dir="ltr" rows="3" id="dvc">${last.code}</textarea><div class="dvlink"><small>اللينك للعميل (اسمه مكتوب فيه جاهز)</small><input readonly dir="ltr" value="${link(last.u)}"></div><div class="row-actions"><button class="btn primary" data-cpl="${link(last.u)}">نسخ اللينك</button><button class="btn" data-cp="${last.code}">نسخ الكود</button><button class="btn" id="dvmsg">نسخ رسالة كاملة</button></div></div>` : ''}
         ${list.length ? `<h3 class="dvh">الأكواد اللي اتعملت (${list.length})</h3><div class="tblw"><table class="tbl"><thead><tr><th>المستخدم</th><th>تنتهي</th><th>الحالة</th><th></th></tr></thead><tbody>${list.map((t, i) => `<tr><td>${H.esc(t.u)}</td><td>${when(t.e)}</td><td>${t.e > nowSec() ? `<span class="g">شغال (${left(t.e)})</span>` : '<span class="mut">منتهي</span>'}</td><td class="ra"><button class="lnk" data-cpl="${link(t.u)}">اللينك</button><button class="lnk" data-cp="${t.code}">الكود</button><button class="lnk" data-cpm="${i}">الرسالة</button><button class="lnk del" data-rm="${t.created}">حذف من القائمة</button></td></tr>`).join('')}</tbody></table></div>` : ''}
