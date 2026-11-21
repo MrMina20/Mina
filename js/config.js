@@ -7,5 +7,5 @@ window.OMRAN_CONFIG = {
   gate: true,
   iter: 30000,
   secret: '20d45196cd50e68069059f9bd59543bf1472a1829dde7535',
-  devHash: 'e9a3237397d9a17a6202c5977709fed09fa37c0c9a3eda93a24dba49abd7ff2e'
+  devHash: 'a407e7d373529e69d11e21c1dcbfa3d6e0796b52b6933411c794143f7a0aa107'
 };
