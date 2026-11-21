@@ -4,6 +4,8 @@
   const O = w.Omran, { S, H, toast, modal } = O;
   const CFG = w.OMRAN_CONFIG || { gate: false, secret: '', devHash: '' };
   const enc = new TextEncoder(), dec = new TextDecoder();
+  const SS = { get: (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { /* لا شيء */ } }, del: (k) => { try { sessionStorage.removeItem(k); } catch (e) { /* لا شيء */ } } };
+  const isDev = () => SS.get('omran_dev') === '1' || LS.get('omran_dev') === '1';
   const LS = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* لا شيء */ } }, del: (k) => { try { localStorage.removeItem(k); } catch (e) { /* لا شيء */ } } };
 
   /* ---- SHA-256 و HMAC بدون مكتبات (يشتغل حتى من file://) ---- */
@@ -64,7 +66,7 @@
   const when = (e) => new Date(e * 1000).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
 
   function status() {
-    if (!CFG.gate || LS.get('omran_dev') === '1') return { ok: true, dev: LS.get('omran_dev') === '1' };
+    if (!CFG.gate || isDev()) return { ok: true, dev: isDev() };
     let lic = null; try { lic = JSON.parse(LS.get('omran_lic') || 'null'); } catch (e) { /* لا شيء */ }
     if (!lic) return { ok: false, reason: 'none' };
     const d = parse(lic.code);
@@ -88,7 +90,7 @@
       <div class="gbrand">${O.BRAND}<div><strong>${H.esc(S.meta().company || 'عمران')}</strong><small>إدارة العقارات والمقاولات</small></div></div>
       <h2>${expired ? 'انتهت فترة التجربة' : 'نسخة تجريبية'}</h2>
       <p class="mut">${expired ? 'انتهت التجربة بتاريخ ' + when(st.exp) + '. اطلب كود جديد وكمّل من حيث وقفت، بياناتك محفوظة.' : 'اكتب اسم المستخدم وكود التجربة اللي وصلك.'}</p>
-      <label class="fld"><span>اسم المستخدم</span><input id="gu" value="${H.esc((st && st.user) || joinName())}" autocomplete="off"></label>
+      <label class="fld"><span>اسم المستخدم</span><input id="gu" value="${H.esc((st && st.user) || joinName() || LS.get('omran_lu') || '')}" autocomplete="off"></label>
       <label class="fld"><span>كود التجربة</span><input id="gc" dir="ltr" placeholder="OM1...." autocomplete="off"></label>
       <p class="gerr" id="ge" role="alert"></p>
       <button class="btn primary" type="submit">دخول</button></form></div>`;
@@ -102,33 +104,33 @@
   }
   const joinName = () => { const m = (location.hash || '').match(/^#\/join\/(.+)$/); try { return m ? decodeURIComponent(m[1]) : ''; } catch (e) { return ''; } };
   // دخول المطور: بيبطّأ المحاولات الغلط (30 ثانية بعد 3 محاولات وبيتضاعف)
-  function tryDev(pass) {
+  function tryDev(pass, remember) {
     let f = { n: 0, until: 0 }; try { f = JSON.parse(LS.get('omran_fail') || '') || f; } catch (e) { /* لا شيء */ }
     const t = Date.now();
     if (f.until > t) return 'استنى ' + Math.ceil((f.until - t) / 1000) + ' ثانية وجرّب تاني.';
-    if (devHash(String(pass || '').trim()) === CFG.devHash) { LS.set('omran_dev', '1'); LS.del('omran_fail'); return ''; }
+    if (devHash(String(pass || '').trim()) === CFG.devHash) { if (remember) LS.set('omran_dev', '1'); else SS.set('omran_dev', '1'); LS.del('omran_fail'); return ''; }
     f.n = (f.n || 0) + 1; f.until = f.n >= 3 ? t + Math.min(900000, 30000 * Math.pow(2, f.n - 3)) : 0; LS.set('omran_fail', JSON.stringify(f));
     return 'كلمة السر غلط.';
   }
   // صفحة دخول المطور (#/dev) ومنها لوحة توليد الأكواد واللينكات
   function devPage() {
     const app = document.getElementById('app');
-    if (LS.get('omran_dev') === '1') {
+    if (isDev()) {
       app.innerHTML = `<header class="topbar noprint"><h1>لوحة المطور</h1></header><main class="wrap inner"><section class="panel pad" id="devsec"></section></main>`;
       mountDev(app.querySelector('#devsec')); return;
     }
     app.innerHTML = `<div class="gate"><form class="gcard panel" id="df" autocomplete="off">
       <div class="gbrand">${O.BRAND}<div><strong>دخول المطور</strong><small>للمطور فقط</small></div></div>
-      <label class="fld"><span>كلمة سر المطور</span><input id="dp" type="password" autocomplete="current-password"></label>
+      <label class="fld"><span>كلمة سر المطور</span><input id="dp" type="password" autocomplete="off"></label>
+      <label class="chk"><input type="checkbox" id="dr"><span>حفظ الدخول على هذا الجهاز (من غير ما يطلب الباسورد تاني)</span></label>
       <p class="gerr" id="de" role="alert"></p><button class="btn primary" type="submit">دخول</button></form></div>`;
     document.getElementById('dp').focus();
     document.getElementById('df').onsubmit = (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button'); btn.disabled = true;
-      setTimeout(() => { const err = tryDev(document.getElementById('dp').value); btn.disabled = false; if (err) document.getElementById('de').textContent = err; else { toast('أهلاً يا مطور'); O.route(); } }, 30);
+      setTimeout(() => { const err = tryDev(document.getElementById('dp').value, document.getElementById('dr').checked); btn.disabled = false; if (err) document.getElementById('de').textContent = err; else { toast('أهلاً يا مطور'); O.route(); } }, 30);
     };
   }
-  const isDev = () => LS.get('omran_dev') === '1';
 
   /* ---- لوحة المطور في الإعدادات ---- */
   const trials = () => { try { return JSON.parse(LS.get('omran_trials') || '[]'); } catch (e) { return []; } };
@@ -164,7 +166,7 @@
         if (b.id === 'dvmsg') copy(msg(last));
         if (b.dataset.cpm != null) copy(msg(list[+b.dataset.cpm]));
         if (b.dataset.rm) { saveTrials(trials().filter((t) => String(t.created) !== b.dataset.rm)); draw(last); }
-        if (b.id === 'dvx') { LS.del('omran_dev'); toast('تم الخروج من وضع المطور'); location.hash = '#/dev'; O.route(); }
+        if (b.id === 'dvx') { LS.del('omran_dev'); SS.del('omran_dev'); toast('تم الخروج من وضع المطور'); location.hash = '#/dev'; O.route(); }
         if (b.id === 'dvp') {
           const p = await O.ask('كلمة سر جديدة', 'كلمة السر الجديدة', '', 'هيطلعلك سطر تنسخه في ملف js/config.js مكان devHash.', 'text');
           if (p && p.trim().length >= 6) { const line = "devHash: '" + devHash(p.trim()) + "'"; const bd = document.createElement('div'); bd.innerHTML = `<p>الصق السطر ده في <b>js/config.js</b> مكان سطر devHash، وارفع الملف:</p><textarea readonly dir="ltr" rows="3" class="dvta">${line}</textarea>`; modal({ title: 'كلمة سر المطور', body: bd, actions: [{ l: 'نسخ السطر', cls: 'primary', fn: () => copy(line) }, { l: 'إغلاق', fn: (c) => c() }] }); } else if (p != null) toast('اكتب 6 حروف على الأقل', 'warn');
@@ -174,8 +176,16 @@
     draw();
   }
 
+  // خروج: المطور بيرجع لشاشة دخول المطور، والعميل لشاشة الكود (اسمه بيتفضل مكتوب لكن الكود لازم يكتبه تاني)
+  async function exit() {
+    const dev = isDev();
+    if (!(await O.confirmBox(dev ? 'الخروج من وضع المطور؟ هتحتاج الباسورد تاني.' : 'الخروج من البرنامج؟ هتحتاج كود التجربة تاني عشان تدخل. بياناتك محفوظة ومش هتتمسح.', 'خروج'))) return;
+    if (dev) { LS.del('omran_dev'); SS.del('omran_dev'); location.hash = '#/dev'; }
+    else { try { const l = JSON.parse(LS.get('omran_lic') || 'null'); if (l && l.u) LS.set('omran_lu', l.u); } catch (e) { /* لا شيء */ } LS.del('omran_lic'); location.hash = '#/'; }
+    O.route();
+  }
   const chip = () => { const st = status(); return st.ok && st.exp ? ` · <span class="trial">فترة التجربة: متبقي ${left(st.exp)}</span>` : ''; };
   setInterval(() => { if (CFG.gate && !status().ok && !document.querySelector('.gate')) O.route(); }, 20000);
   const settingsLink = (host) => { host.hidden = !isDev(); host.innerHTML = isDev() ? '<h3>نسخة المطور</h3><p class="mut">توليد لينكات وأكواد تجربة للعملاء بمدة تحددها.</p><a class="btn primary" href="#/dev">فتح لوحة المطور</a>' : ''; };
-  O.License = { status, gate, devPage, settingsLink, mountDev, chip, _t: { sha256, hmac, hex, make, parse, devHash, activate } };
+  O.License = { status, exit, gate, devPage, settingsLink, mountDev, chip, _t: { sha256, hmac, hex, make, parse, devHash, activate } };
 })(window);

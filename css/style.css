@@ -385,3 +385,5 @@ body::before { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-e
 .dvh { margin: 18px 0 8px; } .dvnote { font-size: 14px; } .dvnote code { direction: ltr; unicode-bidi: embed; }
 .tbl td.ra .lnk + .lnk { margin-inline-start: 14px; }
 .dvlink { display: grid; gap: 4px; } .dvlink small { color: var(--mut); } .dvlink input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px; font-size: 13px; }
+.sbi[hidden] { display: none; } .sbx:hover { color: var(--red); border-color: var(--red); }
+.chk { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--mut); cursor: pointer; } .chk input { width: 18px !important; min-height: 0 !important; margin-top: 3px; flex: none; }

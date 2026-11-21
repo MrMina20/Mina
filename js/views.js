@@ -689,7 +689,7 @@
     if (!side.firstElementChild) {
       side.innerHTML = `<div class="sb-brand">${O.BRAND}<div><strong></strong><small>إدارة العقارات والمقاولات</small></div><button class="sb-tg" data-sb="tg" aria-label="طي القائمة">${ICON.back}</button></div>
       <nav class="sbn" aria-label="الأقسام"><span class="mark" aria-hidden="true"></span>${NAV.map(([k, l, h]) => `<a class="nv" href="${h}" data-k="${k}" title="${l}">${k === 'home' ? `<span class="ti h-blue">${HOME_SVG}</span>` : O.badgeIcon(k)}<span class="nl">${l}</span><span class="nb" data-bd="${k}" hidden></span></a>`).join('')}</nav>
-      <div class="sb-foot"><a class="sbi bellr" href="#/alerts" data-k="alerts" title="التنبيهات" aria-label="التنبيهات">${ICON.bell}<i class="nb2" hidden></i></a><a class="sbi" href="#/settings" data-k="settings" title="الإعدادات" aria-label="الإعدادات">${ICON.gear}</a><button class="sbi" data-sb="theme" title="تبديل المظهر" aria-label="تبديل المظهر"></button><button class="sbi" data-sb="snd" title="الصوت" aria-label="الصوت"></button><button class="sbi" data-sb="bk" title="تحميل نسخة احتياطية" aria-label="تحميل نسخة احتياطية">${ICON.download}</button></div>`;
+      <div class="sb-foot"><a class="sbi bellr" href="#/alerts" data-k="alerts" title="التنبيهات" aria-label="التنبيهات">${ICON.bell}<i class="nb2" hidden></i></a><a class="sbi" href="#/settings" data-k="settings" title="الإعدادات" aria-label="الإعدادات">${ICON.gear}</a><button class="sbi" data-sb="theme" title="تبديل المظهر" aria-label="تبديل المظهر"></button><button class="sbi" data-sb="snd" title="الصوت" aria-label="الصوت"></button><button class="sbi" data-sb="bk" title="تحميل نسخة احتياطية" aria-label="تحميل نسخة احتياطية">${ICON.download}</button><button class="sbi sbx" data-sb="exit" title="خروج" aria-label="خروج"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 8l4 4-4 4M19 12H9"/></svg></button></div>`;
     }
     if (!sbBound) {
       sbBound = true;
@@ -702,9 +702,11 @@
         if (a === 'theme') { S.setMeta({ theme: S.meta().theme === 'light' ? 'dark' : 'light' }); applyTheme(); updateShell(); }
         if (a === 'snd') { S.setMeta({ sound: !S.meta().sound }); updateShell(); beep(); }
         if (a === 'bk') { await downloadBackup(); toast('تم تحميل النسخة الاحتياطية'); }
+        if (a === 'exit') O.License.exit();
       });
       w.addEventListener('resize', placeMark);
     }
+    side.querySelector('.sbx').hidden = !(w.OMRAN_CONFIG && w.OMRAN_CONFIG.gate);
     side.querySelector('.sb-brand strong').textContent = m.company || 'عمران';
     const act = activeNav(), al = O.alerts().length;
     side.querySelectorAll('[data-k]').forEach((a) => { const on = a.dataset.k === act; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
