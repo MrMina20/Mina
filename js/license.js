@@ -47,16 +47,21 @@
   const nowSec = () => { const real = Math.floor(Date.now() / 1000), last = +LS.get('omran_ls') || 0, t = Math.max(real, last); if (t > last) LS.set('omran_ls', String(t)); return t; };
 
   const UNITS = { n: ['دقيقة', 60], h: ['ساعة', 3600], d: ['يوم', 86400], m: ['شهر', 2592000], y: ['سنة', 31536000] };
+  const ACT_WINDOW = 30 * 86400; // الكود اللي ما اتستخدمش بيتلغي بعد 30 يوم من إنشائه
   function make(user, n, unit) {
-    const e = nowSec() + Math.round(n * UNITS[unit][1]);
-    const p = b64(enc.encode(JSON.stringify({ u: user.trim(), e })));
-    return { code: 'OM1.' + p + '.' + sign(p), exp: e };
+    const d = Math.round(n * UNITS[unit][1]), x = nowSec() + ACT_WINDOW, i = b64(w.crypto.getRandomValues(new Uint8Array(5)));
+    const p = b64(enc.encode(JSON.stringify({ u: user.trim(), d, x, i })));
+    return { code: 'OM1.' + p + '.' + sign(p), d, x };
   }
   function parse(code) {
     const m = String(code || '').trim().match(/^OM1\.([\w-]+)\.([\w-]+)$/);
     if (!m || sign(m[1]) !== m[2]) return null;
-    try { const d = JSON.parse(dec.decode(unb64(m[1]))); return d && d.u && d.e ? d : null; } catch (e) { return null; }
+    try { const d = JSON.parse(dec.decode(unb64(m[1]))); d.sig = m[2]; return d && d.u && (d.e || (d.d && d.x)) ? d : null; } catch (e) { return null; }
   }
+  // المدة بتبدأ أول ما العميل يدخل الكود، وبتتسجل عشان الخروج والدخول بنفس الكود ما يبدأش من جديد
+  const acts = () => { try { return JSON.parse(LS.get('omran_act') || '{}') || {}; } catch (e) { return {}; } };
+  const expiry = (d) => { if (d.e) return d.e; const st = acts()[d.sig]; return st ? st + d.d : 0; };
+  const durTxt = (d) => { for (const [n, k] of [['سنة', 31536000], ['شهر', 2592000], ['يوم', 86400], ['ساعة', 3600], ['دقيقة', 60]]) if (d >= k && d % k === 0) return d / k + ' ' + n; return Math.round(d / 60) + ' دقيقة'; };
   const left = (e) => {
     const s = e - nowSec();
     if (s >= 172800) return Math.ceil(s / 86400) + ' يوم';
@@ -71,14 +76,20 @@
     if (!lic) return { ok: false, reason: 'none' };
     const d = parse(lic.code);
     if (!d || uname(d.u) !== uname(lic.u)) return { ok: false, reason: 'none' };
-    if (d.e <= nowSec()) return { ok: false, reason: 'expired', user: d.u, exp: d.e };
-    return { ok: true, user: d.u, exp: d.e };
+    const exp = expiry(d);
+    if (!exp) return { ok: false, reason: 'none' };
+    if (exp <= nowSec()) return { ok: false, reason: 'expired', user: d.u, exp };
+    return { ok: true, user: d.u, exp };
   }
   function activate(user, code) {
     const d = parse(code);
     if (!d) return 'الكود غير صحيح. اتأكد إنك نسخته كامل.';
     if (uname(d.u) !== uname(user)) return 'اسم المستخدم مش مطابق للكود.';
-    if (d.e <= nowSec()) return 'الكود ده انتهت مدته. اطلب كود جديد.';
+    if (!d.e && !acts()[d.sig]) {
+      if (d.x <= nowSec()) return 'الكود ده انتهت مهلة تفعيله. اطلب كود جديد.';
+      const a2 = acts(); a2[d.sig] = nowSec(); LS.set('omran_act', JSON.stringify(a2)); // العدّ بيبدأ من هنا
+    }
+    if (expiry(d) <= nowSec()) return 'الكود ده انتهت مدته. اطلب كود جديد.';
     LS.set('omran_lic', JSON.stringify({ u: user.trim(), code: code.trim() }));
     return '';
   }
@@ -138,7 +149,7 @@
   const saveTrials = (a) => LS.set('omran_trials', JSON.stringify(a));
   const copy = async (t) => { try { await navigator.clipboard.writeText(t); toast('تم النسخ'); } catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('تم النسخ'); } catch (er) { toast('انسخه يدوي', 'warn'); } ta.remove(); } };
   const link = (u) => location.href.split('#')[0] + '#/join/' + encodeURIComponent(u);
-  const msg = (t) => `جرّب برنامج عمران لإدارة العقارات والمقاولات\nالرابط: ${link(t.u)}\nاسم المستخدم: ${t.u}\nكود التجربة: ${t.code}\nالتجربة شغالة حتى ${when(t.e)} (${left(t.e)}).`;
+  const msg = (t) => `جرّب برنامج عمران لإدارة العقارات والمقاولات\nالرابط: ${link(t.u)}\nاسم المستخدم: ${t.u}\nكود التجربة: ${t.code}\nمدة التجربة ${durTxt(t.d)}، وبتبدأ لحظة ما تدخل الكود.`;
 
   function mountDev(host) {
     const draw = (last) => {
@@ -148,8 +159,8 @@
         <div class="fgrid cols3"><label class="fld"><span>اسم المستخدم (للعميل)</span><input id="dvu" placeholder="مثلاً: شركة النور"></label>
         <label class="fld"><span>المدة</span><div class="dur"><input id="dvn" inputmode="decimal" value="3"><select id="dvt"><option value="n">دقيقة</option><option value="h">ساعة</option><option value="d" selected>يوم</option><option value="m">شهر</option><option value="y">سنة</option></select></div></label>
         <div class="fld"><span>&nbsp;</span><button class="btn primary" id="dvm">إنشاء الكود</button></div></div>
-        ${last ? `<div class="dvout"><b>${H.esc(last.u)}</b><small>تنتهي ${when(last.e)} (متبقي ${left(last.e)})</small><textarea readonly dir="ltr" rows="3" id="dvc">${last.code}</textarea><div class="dvlink"><small>اللينك للعميل (اسمه مكتوب فيه جاهز)</small><input readonly dir="ltr" value="${link(last.u)}"></div><div class="row-actions"><button class="btn primary" data-cpl="${link(last.u)}">نسخ اللينك</button><button class="btn" data-cp="${last.code}">نسخ الكود</button><button class="btn" id="dvmsg">نسخ رسالة كاملة</button></div></div>` : ''}
-        ${list.length ? `<h3 class="dvh">الأكواد اللي اتعملت (${list.length})</h3><div class="tblw"><table class="tbl"><thead><tr><th>المستخدم</th><th>تنتهي</th><th>الحالة</th><th></th></tr></thead><tbody>${list.map((t, i) => `<tr><td>${H.esc(t.u)}</td><td>${when(t.e)}</td><td>${t.e > nowSec() ? `<span class="g">شغال (${left(t.e)})</span>` : '<span class="mut">منتهي</span>'}</td><td class="ra"><button class="lnk" data-cpl="${link(t.u)}">اللينك</button><button class="lnk" data-cp="${t.code}">الكود</button><button class="lnk" data-cpm="${i}">الرسالة</button><button class="lnk del" data-rm="${t.created}">حذف من القائمة</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+        ${last ? `<div class="dvout"><b>${H.esc(last.u)}</b><small>المدة ${durTxt(last.d)}، وبتبدأ لحظة ما العميل يدخل الكود (الكود صالح للتفعيل لحد ${when(last.x)})</small><textarea readonly dir="ltr" rows="3" id="dvc">${last.code}</textarea><div class="dvlink"><small>اللينك للعميل (اسمه مكتوب فيه جاهز)</small><input readonly dir="ltr" value="${link(last.u)}"></div><div class="row-actions"><button class="btn primary" data-cpl="${link(last.u)}">نسخ اللينك</button><button class="btn" data-cp="${last.code}">نسخ الكود</button><button class="btn" id="dvmsg">نسخ رسالة كاملة</button></div></div>` : ''}
+        ${list.length ? `<h3 class="dvh">الأكواد اللي اتعملت (${list.length})</h3><div class="tblw"><table class="tbl"><thead><tr><th>المستخدم</th><th>المدة</th><th>الحالة</th><th></th></tr></thead><tbody>${list.map((t, i) => `<tr><td>${H.esc(t.u)}</td><td>${t.d ? durTxt(t.d) : ''}</td><td>${t.x && t.x <= nowSec() ? '<span class="mut">انتهت مهلة التفعيل</span>' : '<span class="g">بيبدأ عند دخول العميل</span>'}</td><td class="ra"><button class="lnk" data-cpl="${link(t.u)}">اللينك</button><button class="lnk" data-cp="${t.code}">الكود</button><button class="lnk" data-cpm="${i}">الرسالة</button><button class="lnk del" data-rm="${t.created}">حذف من القائمة</button></td></tr>`).join('')}</tbody></table></div>` : ''}
         <p class="mut dvnote">الكود بيشتغل في متصفح العميل من غير إنترنت ولا سيرفر، وما فيش طريقة تلغيه قبل ميعاده. ولأن البرنامج كله بيشتغل في المتصفح فالقفل ده للتجربة والتنظيم مش حماية قوية. لإلغاء كل الأكواد القديمة غيّر <code>secret</code> في config.js.</p>
         <div class="row-actions"><button class="btn" id="dvp">تغيير كلمة سر المطور</button><button class="btn" id="dvx">خروج من وضع المطور</button></div>`;
       host.onclick = async (e) => {
@@ -159,7 +170,7 @@
           const u = host.querySelector('#dvu').value.trim(), n = H.toNum(host.querySelector('#dvn').value), un = host.querySelector('#dvt').value;
           if (!u) { toast('اكتب اسم المستخدم', 'warn'); return; }
           if (!(n > 0)) { toast('اكتب مدة صحيحة', 'warn'); return; }
-          const r = make(u, n, un), t = { u, e: r.exp, code: r.code, created: Date.now() };
+          const r = make(u, n, un), t = { u, d: r.d, x: r.x, code: r.code, created: Date.now() };
           saveTrials(trials().concat(t)); draw(t);
         }
         if (b.dataset.cp) copy(b.dataset.cp);
