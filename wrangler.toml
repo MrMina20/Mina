@@ -1,0 +1,12 @@
+name = "omran"
+main = "worker/worker.js"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./app"
+binding = "ASSETS"
+run_worker_first = true
+
+[[kv_namespaces]]
+binding = "TRIALS"
+id = "PUT_KV_ID_HERE"

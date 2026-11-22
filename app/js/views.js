@@ -706,7 +706,7 @@
       });
       w.addEventListener('resize', placeMark);
     }
-    side.querySelector('.sbx').hidden = !(w.OMRAN_CONFIG && w.OMRAN_CONFIG.gate);
+    side.querySelector('.sbx').hidden = false;
     side.querySelector('.sb-brand strong').textContent = m.company || 'عمران';
     const act = activeNav(), al = O.alerts().length;
     side.querySelectorAll('[data-k]').forEach((a) => { const on = a.dataset.k === act; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -799,9 +799,7 @@
       document.getElementById('shell').classList.toggle('locked', !O.License.status().dev);
       O.License.devPage(); updateShell(); animateCounts(root()); return;
     }
-    const lic = O.License.status();
-    document.getElementById('shell').classList.toggle('locked', !lic.ok);
-    if (!lic.ok) { O.License.gate(lic); return; }
+    document.getElementById('shell').classList.remove('locked');
     const stage = root();
     stage.classList.remove('enter'); void stage.offsetWidth; stage.classList.add('enter');
     const p = (location.hash || '#/').replace(/^#\/?/, '').split('/');
